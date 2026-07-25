@@ -1,0 +1,294 @@
+# LiteLLM Proxy 設定 — Ollama Cloud
+# 模型名稱若之後 Ollama Cloud 有異動,調整 model 欄位後執行:docker compose restart litellm
+#
+# token 費用說明:
+# 以下費率依 2026-07-17 查得的 OpenRouter 原廠端點或預設供應商價格設定。
+# 單位皆為 USD per token（每百萬 token 單價 ÷ 1,000,000）。
+# cache_read_input_token_cost 僅在來源提供獨立 Cache Read 價格時設定。
+# 別名模型（如 gpt-5.6-sol）依其底層 model 欄位套用相同費率。
+
+model_list:
+  - model_name: glm-5.2
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: kimi-k2.7-code
+    litellm_params:
+      model: openai/kimi-k2.7-code
+      input_cost_per_token: 0.00000095  # $0.95 per 1M
+      output_cost_per_token: 0.000004   # $4.00 per 1M
+      cache_read_input_token_cost: 0.00000019  # $0.19 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: nemotron-3-ultra
+    litellm_params:
+      model: openai/nemotron-3-ultra
+      input_cost_per_token: 0.0000006   # $0.60 per 1M
+      output_cost_per_token: 0.0000036  # $3.60 per 1M
+      cache_read_input_token_cost: 0.0000002  # $0.20 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: minimax-m3
+    litellm_params:
+      model: openai/minimax-m3
+      input_cost_per_token: 0.0000003   # $0.30 per 1M
+      output_cost_per_token: 0.0000012  # $1.20 per 1M
+      cache_read_input_token_cost: 0.00000006  # $0.06 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: deepseek-v4-flash
+    litellm_params:
+      model: openai/deepseek-v4-flash
+      input_cost_per_token: 0.00000014  # $0.14 per 1M
+      output_cost_per_token: 0.00000028  # $0.28 per 1M
+      cache_read_input_token_cost: 0.0000000028  # $0.0028 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: deepseek-v4-pro
+    litellm_params:
+      model: openai/deepseek-v4-pro
+      input_cost_per_token: 0.000000435  # $0.435 per 1M
+      output_cost_per_token: 0.00000087  # $0.87 per 1M
+      cache_read_input_token_cost: 0.000000003625  # $0.003625 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: glm-5.1
+    litellm_params:
+      model: openai/glm-5.1
+      input_cost_per_token: 0.0000014   # $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: kimi-k2.6
+    litellm_params:
+      model: openai/kimi-k2.6
+      input_cost_per_token: 0.00000095  # $0.95 per 1M
+      output_cost_per_token: 0.000004   # $4.00 per 1M
+      cache_read_input_token_cost: 0.00000016  # $0.16 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: minimax-m2.7
+    litellm_params:
+      model: openai/minimax-m2.7
+      input_cost_per_token: 0.0000003   # $0.30 per 1M
+      output_cost_per_token: 0.0000012  # $1.20 per 1M
+      cache_read_input_token_cost: 0.00000006  # $0.06 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gemma4
+    litellm_params:
+      model: openai/gemma4
+      input_cost_per_token: 0.00000022  # Gemma 4 31B: $0.22 per 1M
+      output_cost_per_token: 0.00000055  # $0.55 per 1M
+      cache_read_input_token_cost: 0.00000012  # $0.12 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: nemotron-3-super
+    litellm_params:
+      model: openai/nemotron-3-super
+      input_cost_per_token: 0.00000021  # $0.21 per 1M
+      output_cost_per_token: 0.000000455  # $0.455 per 1M
+      cache_read_input_token_cost: 0.00000006  # $0.06 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: qwen3.5
+    litellm_params:
+      model: openai/qwen3.5
+      input_cost_per_token: 0.00000039  # Qwen3.5 397B A17B: $0.39 per 1M
+      output_cost_per_token: 0.00000234  # $2.34 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: minimax-m2.5
+    litellm_params:
+      model: openai/minimax-m2.5
+      input_cost_per_token: 0.0000003   # $0.30 per 1M
+      output_cost_per_token: 0.0000012  # $1.20 per 1M
+      cache_read_input_token_cost: 0.00000003  # $0.03 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: kimi-k2.5
+    litellm_params:
+      model: openai/kimi-k2.5
+      input_cost_per_token: 0.0000006   # $0.60 per 1M
+      output_cost_per_token: 0.000003   # $3.00 per 1M
+      cache_read_input_token_cost: 0.0000001  # $0.10 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gemini-3-flash-preview
+    litellm_params:
+      model: openai/gemini-3-flash-preview
+      input_cost_per_token: 0.0000005   # $0.50 per 1M
+      output_cost_per_token: 0.000003   # $3.00 per 1M
+      cache_read_input_token_cost: 0.00000005  # $0.05 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: nemotron-3-nano
+    litellm_params:
+      model: openai/nemotron-3-nano
+      input_cost_per_token: 0.00000005  # $0.05 per 1M
+      output_cost_per_token: 0.0000002  # $0.20 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: mistral-large-3
+    litellm_params:
+      model: openai/mistral-large-3
+      input_cost_per_token: 0.0000005   # $0.50 per 1M
+      output_cost_per_token: 0.0000015  # $1.50 per 1M
+      cache_read_input_token_cost: 0.00000005  # $0.05 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-oss
+    litellm_params:
+      model: openai/gpt-oss
+      input_cost_per_token: 0.000000037  # GPT-OSS 120B: $0.037 per 1M
+      output_cost_per_token: 0.00000017  # $0.17 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.6-sol
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # 底層 glm-5.2: $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.6-terra
+    litellm_params:
+      model: openai/kimi-k2.7-code
+      input_cost_per_token: 0.00000095  # 底層 kimi-k2.7-code: $0.95 per 1M
+      output_cost_per_token: 0.000004   # $4.00 per 1M
+      cache_read_input_token_cost: 0.00000019  # $0.19 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.6-luna
+    litellm_params:
+      model: openai/gemma4
+      input_cost_per_token: 0.00000022  # 底層 gemma4（31B）: $0.22 per 1M
+      output_cost_per_token: 0.00000055  # $0.55 per 1M
+      cache_read_input_token_cost: 0.00000012  # $0.12 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.5
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # 底層 glm-5.2: $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.5-pro
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # 底層 glm-5.2: $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.4
+    litellm_params:
+      model: openai/kimi-k2.7-code
+      input_cost_per_token: 0.00000095  # 底層 kimi-k2.7-code: $0.95 per 1M
+      output_cost_per_token: 0.000004   # $4.00 per 1M
+      cache_read_input_token_cost: 0.00000019  # $0.19 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.4-mini
+    litellm_params:
+      model: openai/gemma4
+      input_cost_per_token: 0.00000022  # 底層 gemma4（31B）: $0.22 per 1M
+      output_cost_per_token: 0.00000055  # $0.55 per 1M
+      cache_read_input_token_cost: 0.00000012  # $0.12 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.4-nano
+    litellm_params:
+      model: openai/gemma4
+      input_cost_per_token: 0.00000022  # 底層 gemma4（31B）: $0.22 per 1M
+      output_cost_per_token: 0.00000055  # $0.55 per 1M
+      cache_read_input_token_cost: 0.00000012  # $0.12 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: gpt-5.4-pro
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # 底層 glm-5.2: $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: claude-fable-5
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # 底層 glm-5.2: $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: claude-opus-4-8
+    litellm_params:
+      model: openai/glm-5.2
+      input_cost_per_token: 0.0000014   # 底層 glm-5.2: $1.40 per 1M
+      output_cost_per_token: 0.0000044  # $4.40 per 1M
+      cache_read_input_token_cost: 0.00000026  # $0.26 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: claude-sonnet-5
+    litellm_params:
+      model: openai/kimi-k2.7-code
+      input_cost_per_token: 0.00000095  # 底層 kimi-k2.7-code: $0.95 per 1M
+      output_cost_per_token: 0.000004   # $4.00 per 1M
+      cache_read_input_token_cost: 0.00000019  # $0.19 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+  - model_name: claude-haiku-4-5
+    litellm_params:
+      model: openai/gemma4
+      input_cost_per_token: 0.00000022  # 底層 gemma4（31B）: $0.22 per 1M
+      output_cost_per_token: 0.00000055  # $0.55 per 1M
+      cache_read_input_token_cost: 0.00000012  # $0.12 per 1M
+      api_base: https://ollama.com/v1
+      api_key: os.environ/OLLAMA_API_KEY
+
+litellm_settings:
+  drop_params: true        # 自動丟棄 Ollama 不支援的 OpenAI 參數,避免 400 錯誤
+  num_retries: 2
+  request_timeout: 600
+
+general_settings:
+  store_model_in_db: true
+  store_prompts_in_spend_logs: true   # 在花費紀錄中保存 prompt 與回應內容(Logs 頁可檢視)

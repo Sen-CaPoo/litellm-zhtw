@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>不改任何原始碼，把 LiteLLM 管理介面變成正體中文 —— 字典注入法</title>
+<meta name="description" content="字典注入法：不修改 LiteLLM 任何原始碼，在建置 Docker 映像檔時把英翻中字典與一小段翻譯 JavaScript 縫進管理介面每一頁 HTML。升級官方版本不會壞，漏翻的字自動維持英文。附可直接複製的 AI 代理 Prompt 與完整原始碼。">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:url" content="https://sen-capoo.github.io/litellm-zhtw/">
+<link rel="canonical" href="https://sen-capoo.github.io/litellm-zhtw/">
+<meta property="og:title" content="不改任何原始碼，把 LiteLLM 管理介面變成正體中文">
+<meta property="og:description" content="字典注入法完整教學：4 個步驟部署、升級不會壞、附 AI 代理 Prompt 與完整原始碼。">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%235b5bd6'/><text x='50' y='73' text-anchor='middle' font-size='60' font-family='sans-serif' fill='white'>文</text></svg>">
+<script>
+  // 在繪製前套用主題，避免閃白
+  (function () {
+    try {
+      var t = localStorage.getItem('zhtw-theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+<style>
+/* ============================================================
+   設計 token
+   ============================================================ */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI",
+               "Noto Sans TC", "PingFang TC", "Hiragino Sans TC", "Microsoft JhengHei",
+               system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", "Cascadia Mono", "JetBrains Mono",
+               Consolas, "Liberation Mono", Menlo, monospace;
+  --r-xs: 6px; --r-sm: 9px; --r: 13px; --r-lg: 18px; --r-xl: 24px;
+  --content: 790px;
+  --sidebar: 268px;
+  --topbar: 56px;
+  --ease: cubic-bezier(.32, .72, 0, 1);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --bg-2: #eff1f5;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --text: #14171e;
+  --text-2: #4a5262;
+  --text-3: #6e7787;
+  --border: #e2e5ec;
+  --border-2: #cfd4de;
+  --brand: #4f46e5;
+  --brand-2: #6d5ce7;
+  --brand-ink: #4338ca;
+  --brand-soft: #eeeeff;
+  --brand-line: #d6d6fb;
+  --teal: #0f766e;
+  --teal-soft: #e4f5f2;
+  --teal-line: #b7e2db;
+  --amber: #a2620a;
+  --amber-soft: #fdf5e6;
+  --amber-line: #f0dcb4;
+  --rose: #be123c;
+  --rose-soft: #fdf0f3;
+  --rose-line: #f6d3dc;
+  --code-bg: #fafbfc;
+  --code-hd: #f2f4f7;
+  --shadow-1: 0 1px 2px rgba(18, 22, 33, .05), 0 2px 6px rgba(18, 22, 33, .04);
+  --shadow-2: 0 2px 6px rgba(18, 22, 33, .05), 0 14px 34px rgba(18, 22, 33, .09);
+  --glow: radial-gradient(135% 92% at 50% 0%, rgba(99, 92, 231, .14), transparent 68%);
+  --sy-com: #8b95a6; --sy-str: #0b7a58; --sy-key: #7c3aed; --sy-num: #a2620a;
+  --sy-fn: #1d4ed8; --sy-re: #be185d; --sy-atr: #0f766e; --sy-op: #64748b;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0c11;
+  --bg-2: #10141b;
+  --surface: #12161f;
+  --surface-2: #171c26;
+  --text: #e9ecf3;
+  --text-2: #a4aebe;
+  --text-3: #808b9b;
+  --border: #222936;
+  --border-2: #313a4a;
+  --brand: #a5adff;
+  --brand-2: #8f8bfb;
+  --brand-ink: #c6caff;
+  --brand-soft: #191c33;
+  --brand-line: #2c2f52;
+  --teal: #57d3c4;
+  --teal-soft: #0e2b2a;
+  --teal-line: #1c4643;
+  --amber: #f2b544;
+  --amber-soft: #2a2010;
+  --amber-line: #47371a;
+  --rose: #fb7185;
+  --rose-soft: #2a1219;
+  --rose-line: #482129;
+  --code-bg: #0c0f16;
+  --code-hd: #131822;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .3);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, .3), 0 18px 44px rgba(0, 0, 0, .4);
+  --glow: radial-gradient(135% 92% at 50% 0%, rgba(120, 112, 255, .18), transparent 68%);
+  --sy-com: #667287; --sy-str: #7fe0b8; --sy-key: #c3b6fd; --sy-num: #f6cd6a;
+  --sy-fn: #8fc4fb; --sy-re: #f7a1cd; --sy-atr: #57d3c4; --sy-op: #8b96a8;
+}
+
+/* ============================================================
+   基礎
+   ============================================================ */
+* { box-sizing: border-box; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--topbar) + 20px);
+  -webkit-text-size-adjust: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16.5px;
+  line-height: 1.85;
+  letter-spacing: .008em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--brand); color: #fff; }
+a { color: var(--brand); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
+h1, h2, h3, h4 { line-height: 1.35; letter-spacing: -.01em; font-weight: 650; margin: 0; }
+p { margin: 0 0 1.05em; text-wrap: pretty; }
+p:last-child { margin-bottom: 0; }
+ul, ol { margin: 0 0 1.05em; padding-left: 1.4em; }
+li { margin: .3em 0; }
+li::marker { color: var(--text-3); }
+strong { font-weight: 650; color: var(--text); }
+hr { border: 0; border-top: 1px solid var(--border); margin: 2.6rem 0; }
+.skip {
+  position: absolute; left: -9999px; top: 8px; z-index: 200;
+  background: var(--brand); color: #fff; padding: 8px 14px; border-radius: var(--r-sm);
+}
+.skip:focus { left: 12px; }
+code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: .875em;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border: 1px solid var(--brand-line);
+  padding: .1em .38em;
+  border-radius: var(--r-xs);
+  word-break: break-word;
+}
+kbd {
+  font-family: var(--font-sans); font-size: .82em; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  border-bottom-width: 2px; border-radius: var(--r-xs);
+  padding: .12em .45em; color: var(--text); white-space: nowrap;
+}
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ============================================================
+   頂部列
+   ============================================================ */
+.topbar {
+  position: sticky; top: 0; z-index: 60;
+  height: var(--topbar);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 clamp(14px, 3vw, 26px);
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; }
+.brand-mark {
+  width: 26px; height: 26px; border-radius: 8px; flex: none;
+  background: linear-gradient(140deg, var(--brand-2), var(--brand));
+  color: #fff; font-size: 14px; font-weight: 700;
+  display: grid; place-items: center;
+}
+.brand-txt { font-weight: 620; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-sub { color: var(--text-3); font-size: 13px; white-space: nowrap; }
+@media (max-width: 620px) { .brand-sub { display: none; } }
+.spacer { flex: 1 1 auto; }
+.icon-btn {
+  height: 34px; min-width: 34px; padding: 0 9px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--surface); color: var(--text-2);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  font: inherit; font-size: 13px; cursor: pointer;
+  transition: background .16s, color .16s, border-color .16s;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+.icon-btn svg { width: 16px; height: 16px; flex: none; }
+#navToggle { display: none; }
+@media (max-width: 1000px) { #navToggle { display: inline-flex; } }
+[data-theme="dark"] .ico-sun { display: block; }
+[data-theme="dark"] .ico-moon { display: none; }
+[data-theme="light"] .ico-sun { display: none; }
+[data-theme="light"] .ico-moon { display: block; }
+.progress {
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: transparent; pointer-events: none;
+}
+.progress > i {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--brand-2), var(--teal));
+}
+
+/* ============================================================
+   骨架
+   ============================================================ */
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  max-width: 1360px;
+  margin: 0 auto;
+}
+@media (max-width: 1000px) { .shell { grid-template-columns: minmax(0, 1fr); } }
+
+.sidebar {
+  position: sticky; top: var(--topbar);
+  height: calc(100vh - var(--topbar));
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 26px 14px 60px 22px;
+}
+.toc-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--text-3); padding: 0 10px 10px;
+}
+.toc a {
+  display: flex; align-items: baseline; gap: 9px;
+  padding: 6.5px 10px; border-radius: var(--r-sm);
+  color: var(--text-2); font-size: 14px; line-height: 1.5;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: background .14s, color .14s;
+}
+.toc a:hover { background: var(--surface); color: var(--text); text-decoration: none; }
+.toc a .n { font: 600 11px/1 var(--font-mono); color: var(--text-3); padding-top: 4px; }
+.toc a.active { background: var(--brand-soft); color: var(--brand-ink); font-weight: 600; border-left-color: var(--brand); }
+.toc a.active .n { color: var(--brand); }
+.toc-sep { height: 1px; background: var(--border); margin: 12px 10px; }
+.toc-foot { padding: 0 10px; font-size: 12.5px; color: var(--text-3); line-height: 1.7; }
+
+@media (max-width: 1000px) {
+  .sidebar {
+    position: fixed; top: var(--topbar); left: 0; z-index: 55;
+    width: min(310px, 84vw); height: calc(100vh - var(--topbar));
+    background: var(--bg); border-right: 1px solid var(--border);
+    transform: translateX(-102%); transition: transform .3s var(--ease);
+    box-shadow: var(--shadow-2);
+  }
+  .sidebar.open { transform: none; }
+  .scrim {
+    position: fixed; inset: var(--topbar) 0 0; z-index: 54;
+    background: rgba(4, 6, 10, .5); opacity: 0; pointer-events: none;
+    transition: opacity .3s var(--ease);
+  }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+}
+@media (min-width: 1001px) { .scrim { display: none; } }
+
+.main { min-width: 0; padding: 0 clamp(16px, 4vw, 40px) 90px; }
+/* 桌機時靠左，讓「側欄＋內容」整體的視覺重心貼近畫面中央 */
+.wrap { max-width: var(--content); margin: 0; }
+@media (max-width: 1000px) { .wrap { margin: 0 auto; } }
+
+/* ============================================================
+   區段標題
+   ============================================================ */
+section { padding-top: 18px; }
+.sec-head { margin: 62px 0 26px; }
+section:first-of-type .sec-head { margin-top: 30px; }
+.sec-kicker {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 700 11.5px/1 var(--font-mono); letter-spacing: .1em;
+  color: var(--brand); background: var(--brand-soft);
+  border: 1px solid var(--brand-line); border-radius: 99px;
+  padding: 5px 11px; margin-bottom: 14px;
+}
+.sec-head h2 { font-size: clamp(23px, 3.4vw, 30px); }
+.sec-head .lede { margin: 12px 0 0; color: var(--text-2); font-size: 16px; }
+h3 { font-size: 18.5px; margin: 34px 0 12px; }
+h4 { font-size: 15.5px; margin: 24px 0 8px; color: var(--text); }
+
+/* ============================================================
+   Hero
+   ============================================================ */
+.hero { padding: 0; position: relative; }
+.hero::before {
+  content: ""; position: absolute; inset: -90px 0 auto; height: 580px;
+  background: var(--glow); pointer-events: none; z-index: -1;
+}
+.hero-inner { padding: clamp(34px, 7vw, 68px) 0 6px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: .04em;
+  color: var(--teal); background: var(--teal-soft);
+  border: 1px solid var(--teal-line); border-radius: 99px; padding: 5px 13px;
+}
+.hero h1 {
+  font-size: clamp(30px, 5.6vw, 47px);
+  line-height: 1.22; letter-spacing: -.025em; font-weight: 700;
+  margin: 20px 0 0;
+}
+.hero h1 .hl {
+  background: linear-gradient(102deg, var(--brand-2), var(--teal));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.hero .tagline {
+  margin: 20px 0 0; font-size: clamp(16px, 2.1vw, 18.5px);
+  color: var(--text-2); line-height: 1.8; max-width: 40em;
+}
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 10px; margin: 30px 0 0;
+}
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 15px;
+}
+.stat b {
+  display: block; font: 700 clamp(20px, 3vw, 25px)/1.2 var(--font-sans);
+  letter-spacing: -.02em; color: var(--text);
+}
+.stat b .u { font-size: .58em; font-weight: 600; color: var(--text-3); margin-left: 3px; }
+.stat span { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 3px; line-height: 1.5; }
+.hero-note {
+  margin: 22px 0 0; font-size: 14px; color: var(--text-3);
+  padding-left: 13px; border-left: 2px solid var(--border-2);
+}
+
+/* 路線選擇 */
+.routes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); margin: 36px 0 8px; }
+.route {
+  display: block; padding: 17px 18px; text-decoration: none;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-1);
+  transition: transform .2s var(--ease), border-color .2s, box-shadow .2s;
+}
+.route:hover {
+  text-decoration: none; transform: translateY(-3px);
+  border-color: var(--brand-line); box-shadow: var(--shadow-2);
+}
+.route .who { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--text-3); }
+.route .go { display: block; margin-top: 6px; font-size: 16.5px; font-weight: 650; color: var(--text); }
+.route .why { display: block; margin-top: 5px; font-size: 13.5px; color: var(--text-2); line-height: 1.65; }
+.route .arw { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--brand); }
+
+/* ============================================================
+   卡片 / 提示框 / 表格
+   ============================================================ */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 20px 22px; margin: 20px 0;
+}
+.grid-3 { display: grid; gap: 13px; grid-template-columns: repeat(auto-fit, minmax(226px, 1fr)); margin: 22px 0; }
+.role {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 18px 19px;
+}
+.role .rt { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.role .rn {
+  width: 27px; height: 27px; flex: none; border-radius: 9px;
+  display: grid; place-items: center; font-size: 15px;
+  background: var(--brand-soft); border: 1px solid var(--brand-line);
+}
+.role h4 { margin: 0; font-size: 15.5px; }
+.role h4 em { display: block; font: 400 12px/1.4 var(--font-mono); color: var(--text-3); font-style: normal; margin-top: 1px; }
+.role p { font-size: 14px; color: var(--text-2); line-height: 1.75; margin: 0; }
+
+.note {
+  display: flex; gap: 13px; margin: 20px 0; padding: 15px 17px;
+  border: 1px solid var(--border); border-left-width: 3px;
+  border-radius: var(--r); background: var(--surface);
+  font-size: 14.5px; line-height: 1.75;
+}
+.note .ni { flex: none; font-size: 15px; line-height: 1.6; }
+.note > div { min-width: 0; }
+.note b { display: block; margin-bottom: 2px; }
+.note.tip { border-left-color: var(--teal); background: var(--teal-soft); border-color: var(--teal-line); }
+.note.warn { border-left-color: var(--amber); background: var(--amber-soft); border-color: var(--amber-line); }
+.note.info { border-left-color: var(--brand); background: var(--brand-soft); border-color: var(--brand-line); }
+.note p { margin: 0 0 .5em; }
+.note p:last-child { margin: 0; }
+
+.table-wrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.7; }
+th { background: var(--surface-2); font-weight: 650; font-size: 13px; color: var(--text-2); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+td .sub { display: block; font-size: 13px; color: var(--text-3); font-weight: 400; white-space: normal; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0 0; }
+.chip {
+  font-size: 13px; padding: 4px 11px; border-radius: 99px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2);
+}
+.chip.mono { font-family: var(--font-mono); font-size: 12.5px; }
+.chip.good { background: var(--teal-soft); border-color: var(--teal-line); color: var(--teal); }
+.chip.stop { background: var(--rose-soft); border-color: var(--rose-line); color: var(--rose); }
+
+/* ============================================================
+   程式碼區塊
+   ============================================================ */
+.code {
+  margin: 16px 0; border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden; background: var(--code-bg);
+}
+.code > figcaption {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px 8px 14px;
+  background: var(--code-hd); border-bottom: 1px solid var(--border);
+  font: 600 12.5px/1 var(--font-mono); color: var(--text-2);
+}
+.code .fname { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.code .fname .dot { width: 7px; height: 7px; border-radius: 99px; background: var(--brand-2); flex: none; }
+.code .fname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.code .acts { margin-left: auto; display: flex; gap: 6px; flex: none; }
+.mini-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 27px; padding: 0 9px;
+  background: var(--surface); color: var(--text-2);
+  border: 1px solid var(--border); border-radius: var(--r-xs);
+  font: 600 12px/1 var(--font-sans); cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.mini-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+.mini-btn.ok { color: var(--teal); border-color: var(--teal-line); background: var(--teal-soft); }
+.mini-btn svg { width: 13px; height: 13px; }
+a.mini-btn { text-decoration: none; }
+a.mini-btn:hover { text-decoration: none; color: var(--brand); border-color: var(--brand-line); }
+.files-note { font-size: 14px; color: var(--text-2); line-height: 1.75; margin: -4px 0 0; }
+.code pre {
+  margin: 0; padding: 15px 16px; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 13.2px; line-height: 1.72;
+  color: var(--text); tab-size: 2;
+}
+.code pre code { font: inherit; background: none; border: 0; padding: 0; color: inherit; white-space: pre; }
+.code.scroll pre { max-height: 460px; overflow-y: auto; }
+.code.plain pre { white-space: pre-wrap; word-break: break-word; font-size: 13.6px; line-height: 1.85; }
+.code.plain pre code { white-space: inherit; }
+
+.tok-com { color: var(--sy-com); font-style: italic; }
+.tok-str { color: var(--sy-str); }
+.tok-key { color: var(--sy-key); font-weight: 600; }
+.tok-num { color: var(--sy-num); }
+.tok-fn  { color: var(--sy-fn); }
+.tok-re  { color: var(--sy-re); }
+.tok-atr { color: var(--sy-atr); }
+.tok-op  { color: var(--sy-op); }
+.tok-hd  { color: var(--brand); font-weight: 700; }
+
+/* 可展開的長程式碼 */
+.clip { position: relative; }
+.clip[data-collapsed="1"] pre { max-height: 330px; overflow: hidden; }
+.clip[data-collapsed="1"] .fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 130px;
+  background: linear-gradient(to bottom, transparent, var(--code-bg) 72%);
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px;
+}
+.clip[data-collapsed="0"] .fade { position: static; height: auto; background: none; padding: 0 0 12px; display: flex; justify-content: center; }
+.expand {
+  background: var(--surface); border: 1px solid var(--border-2); color: var(--text);
+  border-radius: 99px; padding: 6px 16px; font: 600 12.5px var(--font-sans); cursor: pointer;
+  box-shadow: var(--shadow-1);
+}
+.expand:hover { border-color: var(--brand); color: var(--brand); }
+
+/* 檔案下載列 */
+.files { display: grid; gap: 9px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin: 18px 0; }
+.file {
+  display: flex; align-items: center; gap: 11px; padding: 12px 13px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+}
+.file .fi {
+  width: 32px; height: 32px; flex: none; border-radius: 9px;
+  display: grid; place-items: center; font: 700 11px/1 var(--font-mono);
+  background: var(--brand-soft); border: 1px solid var(--brand-line); color: var(--brand);
+}
+.file .fm { min-width: 0; flex: 1 1 auto; }
+.file .fm b { display: block; font: 600 13px/1.4 var(--font-mono); color: var(--text); overflow-wrap: anywhere; }
+.file .fm span { display: block; font-size: 12px; color: var(--text-3); line-height: 1.5; }
+.file .mini-btn { flex: none; }
+
+/* ============================================================
+   步驟
+   ============================================================ */
+.steps { list-style: none; margin: 26px 0 0; padding: 0; }
+.step { position: relative; padding: 0 0 34px 52px; }
+.step::before {
+  content: ""; position: absolute; left: 16px; top: 34px; bottom: 0;
+  width: 2px; background: linear-gradient(to bottom, var(--border-2), var(--border));
+}
+.step:last-child { padding-bottom: 6px; }
+.step:last-child::before { display: none; }
+.step > .no {
+  position: absolute; left: 0; top: 0;
+  width: 34px; height: 34px; border-radius: 11px;
+  display: grid; place-items: center;
+  font: 700 14px/1 var(--font-mono);
+  background: var(--surface); color: var(--brand);
+  border: 1px solid var(--brand-line); box-shadow: var(--shadow-1);
+}
+.step > h3 { margin: 3px 0 4px; font-size: 18px; }
+.step .goal { font-size: 14px; color: var(--text-3); margin: 0 0 12px; }
+.done {
+  display: flex; gap: 9px; align-items: flex-start;
+  margin: 14px 0 0; padding: 11px 14px;
+  background: var(--teal-soft); border: 1px solid var(--teal-line);
+  border-radius: var(--r); font-size: 14px; color: var(--text-2); line-height: 1.7;
+}
+.done::before { content: "✓"; color: var(--teal); font-weight: 700; flex: none; }
+.done b { color: var(--teal); font-weight: 650; }
+@media (max-width: 560px) {
+  .step { padding-left: 42px; }
+  .step::before { left: 13px; }
+  .step > .no { width: 28px; height: 28px; border-radius: 9px; font-size: 12.5px; }
+}
+
+/* 三步小流程 */
+.miniflow { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 22px 0; }
+.mf { position: relative; padding: 15px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+.mf b { display: block; font-size: 12px; color: var(--brand); font-family: var(--font-mono); margin-bottom: 5px; }
+.mf span { display: block; font-size: 14px; line-height: 1.65; color: var(--text-2); }
+.mf span em { font-style: normal; color: var(--text); font-weight: 600; }
+
+/* ============================================================
+   架構圖
+   ============================================================ */
+.dgm {
+  margin: 22px 0; border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden; background: var(--surface);
+}
+.dgm-hd {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 16px; background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-2);
+}
+.dgm-hd .tag {
+  font: 700 11.5px/1 var(--font-mono); letter-spacing: .06em;
+  padding: 5px 10px; border-radius: 99px;
+  background: var(--brand-soft); color: var(--brand); border: 1px solid var(--brand-line);
+}
+.dgm-hd .tag.run { background: var(--teal-soft); color: var(--teal); border-color: var(--teal-line); }
+.dgm-bd { padding: 16px; }
+.dnode {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 14px; background: var(--bg-2);
+  border: 1px solid var(--border); border-radius: var(--r);
+}
+.dnode.hl { background: var(--brand-soft); border-color: var(--brand-line); }
+.dnode.out { background: var(--teal-soft); border-color: var(--teal-line); }
+.dnode .di {
+  width: 22px; height: 22px; flex: none; border-radius: 7px;
+  display: grid; place-items: center; font: 700 11px/1 var(--font-mono);
+  background: var(--surface); border: 1px solid var(--border-2); color: var(--text-2);
+}
+.dnode .dc { min-width: 0; font-size: 14.5px; line-height: 1.6; }
+.dnode .dc b { display: block; font-weight: 650; }
+.dnode .dc small { display: block; font-size: 13px; color: var(--text-3); line-height: 1.6; margin-top: 2px; }
+.dnode .dc code { font-size: .84em; }
+.dlink {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 0 7px 10px; margin-left: 10px;
+  font-size: 12.5px; color: var(--text-3); line-height: 1.5;
+}
+.dlink::before {
+  content: "↓"; font-size: 15px; color: var(--brand);
+  font-weight: 700; line-height: 1; flex: none; opacity: .75;
+}
+.dbridge {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 11px 0; font: 600 12.5px var(--font-mono); color: var(--text-3);
+}
+.dbridge::before, .dbridge::after { content: ""; height: 1px; flex: 1 1 auto; background: var(--border); }
+.dfoot {
+  padding: 11px 16px; border-top: 1px dashed var(--border);
+  background: var(--surface-2); font-size: 13.5px; color: var(--text-2);
+}
+.dfoot b { color: var(--teal); }
+
+/* 決策鏈 */
+.chain { display: grid; gap: 0; }
+.crow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 12px; align-items: center; }
+.crow.solo { grid-template-columns: minmax(0, 1fr); }
+.cnode {
+  padding: 11px 14px; background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r); font-size: 14.5px; line-height: 1.55;
+}
+.cnode small { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+.cnode.end { background: var(--amber-soft); border-color: var(--amber-line); }
+.cout {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 14px; line-height: 1.55; color: var(--text-2);
+}
+.cout::before { content: "→"; color: var(--teal); font-weight: 700; flex: none; }
+.cout b { color: var(--text); font-weight: 650; }
+.cout .lbl {
+  font: 700 11px/1 var(--font-mono); padding: 3px 8px; border-radius: 99px; flex: none;
+  background: var(--teal-soft); color: var(--teal); border: 1px solid var(--teal-line);
+}
+.cgap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0 6px 12px; font-size: 12.5px; color: var(--text-3);
+}
+.cgap::before { content: "↓"; color: var(--brand); font-weight: 700; flex: none; opacity: .75; }
+@media (max-width: 640px) {
+  .crow { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .cout { padding-left: 14px; }
+}
+
+/* 範圍圖 */
+.scope { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); }
+.scope > div { padding: 15px 16px; border: 1px solid var(--border); border-radius: var(--r); background: var(--bg-2); }
+.scope h5 { margin: 0 0 4px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.scope .yes h5 { color: var(--teal); }
+.scope .no h5 { color: var(--rose); }
+.scope p { font-size: 13px; color: var(--text-3); margin: 0 0 9px; }
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.faq { margin: 22px 0 0; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
+.faq details { border-bottom: 1px solid var(--border); }
+.faq details:last-child { border-bottom: 0; }
+.faq summary {
+  display: flex; align-items: center; gap: 11px;
+  padding: 15px 17px; cursor: pointer; list-style: none;
+  font-size: 15.5px; font-weight: 600; color: var(--text);
+  transition: background .15s;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary:hover { background: var(--surface-2); }
+.faq summary::after {
+  content: ""; margin-left: auto; flex: none;
+  width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3);
+  transform: rotate(45deg) translateY(-2px); transition: transform .22s var(--ease);
+}
+.faq details[open] summary { background: var(--surface-2); }
+.faq details[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.faq .ans { padding: 3px 17px 18px; font-size: 15px; color: var(--text-2); line-height: 1.85; }
+.faq .ans > :last-child { margin-bottom: 0; }
+
+/* 折疊區塊（原始碼） */
+.fold { border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; margin: 18px 0; background: var(--surface); }
+.fold > summary {
+  display: flex; align-items: center; gap: 11px; padding: 14px 17px; cursor: pointer; list-style: none;
+  font-size: 15px; font-weight: 620;
+}
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary:hover { background: var(--surface-2); }
+.fold > summary .tagline2 { margin-left: auto; font: 400 12.5px var(--font-mono); color: var(--text-3); }
+.fold > summary::before {
+  content: "▸"; color: var(--text-3); flex: none; transition: transform .2s var(--ease);
+}
+.fold[open] > summary::before { transform: rotate(90deg); }
+.fold[open] > summary { border-bottom: 1px solid var(--border); }
+.fold-bd { padding: 4px 17px 17px; }
+.fold-bd > .code:first-child { margin-top: 14px; }
+
+/* ============================================================
+   雜項
+   ============================================================ */
+.footer {
+  margin: 76px 0 0; padding: 26px 0 0; border-top: 1px solid var(--border);
+  font-size: 14px; color: var(--text-3); line-height: 1.8;
+}
+.footer strong { color: var(--text-2); }
+#toTop {
+  position: fixed; right: 20px; bottom: 22px; z-index: 50;
+  width: 40px; height: 40px; border-radius: 13px;
+  display: grid; place-items: center;
+  background: var(--surface); color: var(--text-2);
+  border: 1px solid var(--border-2); box-shadow: var(--shadow-2);
+  cursor: pointer; opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity .25s, transform .25s var(--ease), color .15s;
+}
+#toTop.on { opacity: 1; transform: none; pointer-events: auto; }
+#toTop:hover { color: var(--brand); }
+#toast {
+  position: fixed; left: 50%; bottom: 26px; z-index: 90;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  background: var(--text); color: var(--bg);
+  padding: 9px 18px; border-radius: 99px;
+  font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-2);
+  transition: opacity .22s, transform .22s var(--ease);
+}
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media print {
+  .topbar, .sidebar, #toTop, #toast, .mini-btn, .expand, .scrim, .routes { display: none !important; }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .shell { grid-template-columns: 1fr; }
+  .main { padding: 0; }
+  .clip[data-collapsed="1"] pre { max-height: none; }
+  .clip .fade { display: none !important; }
+  .code.scroll pre { max-height: none; }
+  .code, .card, .dgm, .faq, .fold, .step { break-inside: avoid; }
+  a { color: #000; text-decoration: underline; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="topbar">
+  <button class="icon-btn" id="navToggle" aria-label="開啟目錄" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">文</span>
+    <span class="brand-txt">LiteLLM 正體中文化</span>
+    <span class="brand-sub">· 字典注入法</span>
+  </div>
+  <span class="spacer"></span>
+  <a class="icon-btn" href="https://github.com/Sen-CaPoo/litellm-zhtw" target="_blank" rel="noopener" title="GitHub 儲存庫（下載完整字典）">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.5 2.87 8.32 6.84 9.67.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.8-4.57 5.06.36.32.68.94.68 1.9v2.81c0 .27.18.6.69.49A10.06 10.06 0 0 0 22 12.26C22 6.58 17.52 2 12 2z"/></svg>
+  </a>
+  <button class="icon-btn" id="themeToggle" aria-label="切換深淺色">
+    <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+    <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+  </button>
+  <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+</header>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="目錄">
+    <nav class="toc" id="toc">
+      <div class="toc-title">目錄</div>
+      <a href="#ai"><span class="n">01</span><span>交給 AI 代理（最省力）</span></a>
+      <a href="#what"><span class="n">02</span><span>這是什麼：30 秒理解</span></a>
+      <a href="#deploy"><span class="n">03</span><span>自己動手：4 個步驟</span></a>
+      <a href="#maintain"><span class="n">04</span><span>日常維護：3 個場景</span></a>
+      <a href="#tech"><span class="n">05</span><span>技術原理（給工程師）</span></a>
+      <a href="#source"><span class="n">06</span><span>完整原始碼</span></a>
+      <a href="#faq"><span class="n">07</span><span>常見問題</span></a>
+      <div class="toc-sep"></div>
+      <div class="toc-foot">程式碼可自由取用、修改。<br>換語言只要換字典內容。</div>
+    </nav>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="main" id="main">
+    <div class="wrap">
+
+      <!-- ============ HERO ============ -->
+      <section class="hero" id="top">
+        <div class="hero-inner">
+          <span class="eyebrow">LiteLLM Admin UI · 正體中文化</span>
+          <h1>不改任何原始碼，<br>把 LiteLLM 管理介面<br>變成<span class="hl">正體中文</span></h1>
+          <p class="tagline">
+            做法叫「<strong>字典注入法</strong>」：在打包 Docker 映像檔時，把一本「英翻中字典」和一位「即時翻譯員（一小段 JavaScript）」縫進管理介面的每一頁 HTML。之後每次開啟畫面，翻譯員就自動把英文換成中文——<strong>升級官方版本不會壞，漏翻的字自動維持英文顯示</strong>。
+          </p>
+
+          <div class="stats">
+            <div class="stat"><b>0<span class="u">行</span></b><span>LiteLLM 原始碼改動</span></div>
+            <div class="stat"><b>4,362<span class="u">條</span></b><span>翻譯字典條目</span></div>
+            <div class="stat"><b>4<span class="u">步</span></b><span>從零到跑起來</span></div>
+            <div class="stat"><b>~1<span class="u">分鐘</span></b><span>升級後補字時間</span></div>
+          </div>
+
+          <p class="hero-note">
+            已在正式環境實測沿用（含一次 LiteLLM 版本升級），介面幾乎全中文，升級後只需補少量新字串。
+          </p>
+
+          <div class="routes">
+            <a class="route" href="#ai">
+              <span class="who">不想碰指令列</span>
+              <span class="go">交給 AI 代理</span>
+              <span class="why">下載三個檔案，複製一段 Prompt，讓 AI 代理把整件事做完。</span>
+              <span class="arw">前往 01 →</span>
+            </a>
+            <a class="route" href="#deploy">
+              <span class="who">會用 Docker</span>
+              <span class="go">自己動手 4 步</span>
+              <span class="why">建檔案 → 寫 Dockerfile → build → 驗證，約 10 分鐘。</span>
+              <span class="arw">前往 03 →</span>
+            </a>
+            <a class="route" href="#tech">
+              <span class="who">想看設計</span>
+              <span class="go">原理與原始碼</span>
+              <span class="why">三張架構圖看完機制，關鍵取捨一張表講完。</span>
+              <span class="arw">前往 05 →</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 01 AI 代理 ============ -->
+      <section id="ai">
+        <div class="sec-head">
+          <span class="sec-kicker">01 · 最省力</span>
+          <h2>交給 AI 代理處理</h2>
+          <p class="lede">
+            如果你不熟 Docker 或指令列，這是最省力的路：<strong>準備檔案 → 複製 Prompt → 貼給 AI 代理</strong>。它會先問你幾個問題，然後把建檔、改 Dockerfile、建置、驗證整套做完。
+          </p>
+        </div>
+
+        <div class="miniflow">
+          <div class="mf"><b>STEP 1</b><span>複製下方的 <em>Prompt</em>，原封不動——裡面已經寫好檔案要去哪裡抓。</span></div>
+          <div class="mf"><b>STEP 2</b><span>貼給有<em>檔案與終端機權限</em>的 AI 代理。</span></div>
+          <div class="mf"><b>STEP 3</b><span><em>回答它問的 3 個問題</em>：資料夾、啟動方式、版本號。其餘交給它。</span></div>
+        </div>
+
+        <h3>要複製的 Prompt</h3>
+        <p>
+          原封不動複製就能用——裡面已經寫好三個檔案去哪裡下載、開工前要問你什麼、每一步要驗證什麼，以及四條不准踩的紅線。
+        </p>
+        <figure class="code plain clip" data-collapsed="1" id="promptMainBox">
+          <figcaption>
+            <span class="fname"><span class="dot"></span><span>給 AI 代理的部署 Prompt</span></span>
+            <span class="acts">
+              <button class="mini-btn" data-copy="prompt-main">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                複製全文
+              </button>
+            </span>
+          </figcaption>
+          <pre><code class="lang-prompt" id="prompt-main" data-file="litellm-zhtw-prompt.txt">你是我的部署助手。目標：把我的 LiteLLM 管理介面（Admin UI）改成正體中文。
+
+做法叫「字典注入法」：不修改 LiteLLM 任何原始碼，只在建置 Docker 映像檔時，把一份英翻中字典和一小段翻譯用的 JavaScript，縫進管理介面每一頁 HTML 的 &lt;/body&gt; 之前。翻譯 100% 發生在瀏覽器端，LiteLLM 伺服器與 API 完全不動。
+
+■ 素材（三個檔案，一字不改直接用，不要自己改寫內容）
+先在我的專案資料夾找 zhtw/dict.json、zhtw/inject.js、zhtw/patch_ui.py：
+・找到了 → 直接使用。
+・沒找到 → 從 https://github.com/Sen-CaPoo/litellm-zhtw 取得 zhtw/ 資料夾裡的三個檔案：
+    dict.json　　英翻中字典，完整 4,362 條（直接下載，不必自己翻譯）
+    inject.js　　執行期翻譯引擎
+    patch_ui.py　建置期注入腳本
+  單檔直連（raw）：
+    https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/zhtw/dict.json
+    https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/zhtw/inject.js
+    https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/zhtw/patch_ui.py
+
+■ 開始前先問我這三件事
+1. 我的 LiteLLM 專案資料夾在哪裡？
+2. 我現在怎麼啟動 LiteLLM？（docker compose／docker run／還沒部署）
+3. 目前的 LiteLLM 版本號是多少？不知道的話你幫我查：
+   docker ps --format "{{.Names}}\t{{.Image}}"
+
+■ 依序執行，每一步做完向我報告結果，需要決策時停下來問我
+1. 環境檢查：docker version 能正常回應。
+2. 備份：把現有的 Dockerfile、docker-compose.yml 各複製一份為 .bak。
+3. 在專案資料夾建立 zhtw/，放入 dict.json、inject.js、patch_ui.py。
+4. 建立（或修改）專案根目錄的 Dockerfile，內容只有三行：
+     FROM ghcr.io/berriai/litellm:&lt;我目前的版本號&gt;
+     COPY zhtw/ /zhtw/
+     RUN python /zhtw/patch_ui.py &amp;&amp; rm -rf /zhtw
+5. 如果我用 docker compose：把 litellm 服務改成
+     build: .
+     image: litellm-zhtw:&lt;我目前的版本號&gt;
+   其餘設定（ports、env_file、volumes、depends_on、restart）一律不要動。
+6. 建置並啟動：docker compose build &amp;&amp; docker compose up -d
+   建置輸出必須出現「zhtw: patched N html files, dict entries = M」，且 N 大於 0。
+   沒出現就停下來排查，不要硬上。
+7. 驗證：curl -s http://localhost:4000/ui 的內容應含有 zhtw-i18n；
+   然後請我在瀏覽器按 Ctrl + F5 強制重新整理，確認畫面已變成中文。
+8. 收尾：用中文告訴我這三件事的具體指令——
+   (a) 以後發現漏翻的字怎麼補　(b) LiteLLM 要升級版本怎麼做　(c) 想還原成英文怎麼做。
+
+■ 字典（只有這兩種情況才需要自己產生，否則直接用上面下載的那份）
+(a) 想翻成簡體／日文等其他語言　(b) 升級後要補新版新增的字串
+1. 先定位官方映像檔裡的套件路徑：
+     docker run --rm ghcr.io/berriai/litellm:&lt;版本號&gt; python -c "import litellm,pathlib;print(pathlib.Path(litellm.__file__).parent)"
+   再用 docker create ＋ docker cp 把該路徑下的 proxy/_experimental/out 複製到本機。
+2. 從 out/ 的 .html 與 .js 萃取畫面用的英文字串常值，濾掉 CSS class、SVG path、URL、程式碼片段等雜訊（注意別誤殺以引號開頭的 placeholder 範例句）。升級補字時只取與舊版的差集。
+3. 翻成台灣用語正體中文，術語必須全站一致：
+   Virtual Key→虛擬金鑰、Key→金鑰、Alias→別名、Spend→花費、Budget→預算、Team→團隊、
+   Usage→用量、Logs→紀錄、Model→模型、Guardrail→防護規則、Rate Limit→速率限制
+4. 併回 zhtw/dict.json，格式用
+     json.dumps(d, indent=0, sort_keys=True, ensure_ascii=False)
+   每個 key 必須是「連續空白壓成一個空白、並去掉頭尾空白」的形式。
+
+■ 硬性規則
+・不准修改 LiteLLM 套件原始碼、資料庫、config.yaml、.env。
+・Dockerfile 的 FROM 一定要釘住版本號，不可用 latest 或 main-stable。
+・刪除或覆蓋任何既有檔案前，先問我。
+・全程用正體中文說明；需要我親自操作時，給我可以直接複製執行的指令。</code></pre>
+          <div class="fade"><button class="expand" data-expand="promptMainBox">展開全文</button></div>
+        </figure>
+
+        <div class="note info">
+          <span class="ni" aria-hidden="true">◆</span>
+          <div>
+            <b>什麼樣的 AI 代理可以用？</b>
+            要能<strong>讀寫你電腦上的檔案</strong>並<strong>執行終端機指令</strong>的那種，例如 Claude Code、Cursor、Codex CLI、Gemini CLI、GitHub Copilot Agent。純聊天視窗的 AI 沒有這些權限，但仍可以把 Prompt 貼進去，讓它一步一步指導你手動操作。
+          </div>
+        </div>
+        <h3>檔案在哪裡（想自己先放好的話）</h3>
+        <p>
+          Prompt 裡已經寫好 GitHub 網址，AI 代理會自己去抓，含<strong>完整 4,362 條字典</strong>——不需要自己萃取翻譯。如果你想先放好，或你的 AI 代理沒有連網權限，就從這裡拿：
+        </p>
+        <div class="files">
+          <div class="file">
+            <span class="fi" aria-hidden="true">JS</span>
+            <span class="fm"><b>inject.js</b><span>即時翻譯員 · 3.7 KB</span></span>
+            <button class="mini-btn" data-dl="src-inject">下載</button>
+          </div>
+          <div class="file">
+            <span class="fi" aria-hidden="true">PY</span>
+            <span class="fm"><b>patch_ui.py</b><span>建置期裝訂工人 · 2.9 KB</span></span>
+            <button class="mini-btn" data-dl="src-patch">下載</button>
+          </div>
+          <div class="file">
+            <span class="fi" aria-hidden="true">{ }</span>
+            <span class="fm"><b>dict.json</b><span>完整字典 · 4,362 條 · 271 KB</span></span>
+            <a class="mini-btn" href="https://github.com/Sen-CaPoo/litellm-zhtw/blob/main/zhtw/dict.json" target="_blank" rel="noopener">GitHub ↗</a>
+          </div>
+        </div>
+        <p class="files-note">
+          最省事：<a href="https://github.com/Sen-CaPoo/litellm-zhtw/archive/refs/heads/main.zip">下載整包 ZIP</a>，解壓後把 <code>zhtw/</code> 整個資料夾複製到你的專案即可。想先小試身手的話，<a href="#source">〈06 完整原始碼〉</a>附了一份 97 條的起步字典可直接下載。
+        </p>
+
+        <div class="note warn">
+          <span class="ni" aria-hidden="true">▲</span>
+          <div>
+            <b>兩件請 AI 代理務必遵守的事（Prompt 裡已寫入）</b>
+            <p>① 先把現有的 <code>Dockerfile</code>、<code>docker-compose.yml</code> 備份成 <code>.bak</code>。② <code>FROM</code> 一定要釘住版本號，不要用 <code>latest</code>。若 AI 想動 <code>config.yaml</code> 或 <code>.env</code>，請直接拒絕——這套做法完全不需要。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 02 這是什麼 ============ -->
+      <section id="what">
+        <div class="sec-head">
+          <span class="sec-kicker">02 · 概念</span>
+          <h2>這是什麼：30 秒理解</h2>
+          <p class="lede">
+            LiteLLM 是一棟原廠進口的英文展示館。我們沒有動它的一磚一瓦，只請了三位幫手進駐。
+          </p>
+        </div>
+
+        <div class="grid-3">
+          <div class="role">
+            <div class="rt"><span class="rn" aria-hidden="true">📖</span><h4>字典<em>dict.json</em></h4></div>
+            <p>約 4,300+ 條「英文原句 → 中文譯句」的對照手冊，例如 <code>"Virtual Keys": "虛擬金鑰"</code>。這是<strong>唯一需要長期維護</strong>的檔案。</p>
+          </div>
+          <div class="role">
+            <div class="rt"><span class="rn" aria-hidden="true">🗣️</span><h4>翻譯員<em>inject.js</em></h4></div>
+            <p>一段極小的 JavaScript。開頁時先把整頁翻一遍，接著<strong>持續盯著畫面</strong>，新冒出來的英文立刻查字典換掉。也懂句型——<code>Page 3 of 10</code> 會變成「第 3 頁，共 10 頁」。</p>
+          </div>
+          <div class="role">
+            <div class="rt"><span class="rn" aria-hidden="true">🧵</span><h4>裝訂工人<em>patch_ui.py</em></h4></div>
+            <p>建置映像檔時執行<strong>一次</strong>，把字典和翻譯員縫進管理介面的每一頁 HTML，並把舊版由伺服器渲染的登入頁直接改成中文。</p>
+          </div>
+        </div>
+
+        <h3>為什麼不直接改原始碼？</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>做法</th><th>結果</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>改 LiteLLM 原始碼</td>
+                <td>官方每次更新，改過的地方全部要重做，維護成本極高，還容易衝突。</td>
+              </tr>
+              <tr>
+                <td>等官方出中文版</td>
+                <td>目前沒有正體中文介面。</td>
+              </tr>
+              <tr>
+                <td>字典注入（本做法）</td>
+                <td>完全不動原始碼；升級時字典照常沿用；新增的英文字頂多先顯示英文，系統功能完全不受影響。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note tip">
+          <span class="ni" aria-hidden="true">✦</span>
+          <div>
+            <b>核心優點：優雅降級（graceful degradation）</b>
+            就算某句話字典裡沒有，畫面也只是顯示原本的英文，系統一切正常。<strong>最壞情況就是介面變回英文</strong>——因為從未修改 LiteLLM 本體。
+          </div>
+        </div>
+
+        <h3>適合誰</h3>
+        <div class="chips">
+          <span class="chip">想把 LiteLLM 介面變成正體中文（或任何語言）的人</span>
+          <span class="chip">不想每次官方升級就把翻譯重做一次的人</span>
+          <span class="chip">只有 Docker 環境、希望「一次設定、長期沿用」的人</span>
+        </div>
+        <p style="margin-top:14px;font-size:14.5px;color:var(--text-2)">
+          換語言只要替換字典內容即可，<code>inject.js</code> / <code>patch_ui.py</code> / <code>Dockerfile</code> 幾乎不用動。以下以正體中文（zh-TW）為例。
+        </p>
+      </section>
+
+      <!-- ============ 03 四步部署 ============ -->
+      <section id="deploy">
+        <div class="sec-head">
+          <span class="sec-kicker">03 · 動手做</span>
+          <h2>自己動手：4 個步驟</h2>
+          <p class="lede">
+            前置條件只有兩個：<strong>已安裝 Docker</strong>（Windows 用 Docker Desktop 即可）、<strong>一個用 Docker / Docker Compose 跑的 LiteLLM</strong>。全程約 10 分鐘。
+          </p>
+        </div>
+
+        <figure class="code" data-lang="text">
+          <figcaption><span class="fname"><span class="dot"></span><span>完成後的資料夾長相</span></span></figcaption>
+          <pre><code class="lang-tree">你的專案/
+├─ Dockerfile          ← 步驟 2 建立
+├─ docker-compose.yml  ← 步驟 3 改兩行（沒用 compose 可略）
+└─ zhtw/               ← 步驟 1 建立
+   ├─ dict.json        英翻中字典（要維護的只有這個）
+   ├─ inject.js        即時翻譯員（複製即用，不用改）
+   └─ patch_ui.py      裝訂工人（複製即用，不用改）</code></pre>
+        </figure>
+
+        <ol class="steps">
+          <li class="step">
+            <span class="no">1</span>
+            <h3>建立 zhtw/ 三個檔案</h3>
+            <p class="goal">目標：把三個檔案放到專案資料夾底下的 <code>zhtw/</code>。</p>
+            <p>
+              <code>inject.js</code> 與 <code>patch_ui.py</code> 直接用<a href="#source">〈06 完整原始碼〉</a>的版本，<strong>一字不改</strong>即可。真正要維護的是 <code>dict.json</code>。
+            </p>
+            <div class="files">
+              <div class="file">
+                <span class="fi" aria-hidden="true">JS</span>
+                <span class="fm"><b>zhtw/inject.js</b><span>複製即用</span></span>
+                <button class="mini-btn" data-dl="src-inject">下載</button>
+              </div>
+              <div class="file">
+                <span class="fi" aria-hidden="true">PY</span>
+                <span class="fm"><b>zhtw/patch_ui.py</b><span>複製即用</span></span>
+                <button class="mini-btn" data-dl="src-patch">下載</button>
+              </div>
+              <div class="file">
+                <span class="fi" aria-hidden="true">{ }</span>
+                <span class="fm"><b>zhtw/dict.json</b><span>完整 4,362 條</span></span>
+                <a class="mini-btn" href="https://github.com/Sen-CaPoo/litellm-zhtw/blob/main/zhtw/dict.json" target="_blank" rel="noopener">GitHub ↗</a>
+              </div>
+            </div>
+            <p class="files-note" style="margin-bottom:16px">
+              或<a href="https://github.com/Sen-CaPoo/litellm-zhtw/archive/refs/heads/main.zip">下載整包 ZIP</a>，裡面的 <code>zhtw/</code> 三個檔案就是這一步要的東西。
+            </p>
+            <p>字典的格式就是一個大 JSON 物件，每行一組「英文: 中文」：</p>
+            <figure class="code" data-lang="json">
+              <figcaption><span class="fname"><span class="dot"></span><span>zhtw/dict.json（格式）</span></span></figcaption>
+              <pre><code class="lang-json">{
+"Virtual Keys": "虛擬金鑰",
+"Teams": "團隊",
+"Usage": "用量",
+"Logs": "紀錄",
+"Spend": "花費",
+"Create New Key": "建立新金鑰"
+}</code></pre>
+            </figure>
+            <p>三條規則：</p>
+            <ul>
+              <li>每組用<strong>半形雙引號</strong>包住，英文在前、中文在後，中間一個冒號。</li>
+              <li>每行結尾要有逗號，<strong>最後一行不要逗號</strong>。</li>
+              <li>英文本身含雙引號要用反斜線跳脫，例：<code>"Say \"Hi\"": "說「你好」"</code>。</li>
+            </ul>
+            <div class="done"><div><b>完成的樣子</b>：<code>zhtw/</code> 裡有 3 個檔案，<code>dict.json</code> 用瀏覽器或文字編輯器開啟不報錯。</div></div>
+          </li>
+
+          <li class="step">
+            <span class="no">2</span>
+            <h3>建立 Dockerfile</h3>
+            <p class="goal">目標：告訴 Docker「以官方映像檔為底，多做一道縫合手續」。</p>
+            <figure class="code" data-lang="dockerfile">
+              <figcaption>
+                <span class="fname"><span class="dot"></span><span>Dockerfile</span></span>
+                <span class="acts">
+                  <button class="mini-btn" data-copy="src-dockerfile">複製</button>
+                  <button class="mini-btn" data-dl="src-dockerfile">下載</button>
+                </span>
+              </figcaption>
+              <pre><code class="lang-dockerfile" id="src-dockerfile" data-file="Dockerfile"># 以官方 image 為基底（建議釘住版本號，不要用 latest）
+FROM ghcr.io/berriai/litellm:v1.93.0
+
+COPY zhtw/ /zhtw/
+RUN python /zhtw/patch_ui.py &amp;&amp; rm -rf /zhtw</code></pre>
+            </figure>
+            <p>只做兩件事：把 <code>zhtw/</code> 複製進去、執行裝訂工人（裝完就刪掉，不留在映像檔裡）。</p>
+            <div class="note warn">
+              <span class="ni" aria-hidden="true">▲</span>
+              <div>把 <code>v1.93.0</code> 換成<strong>你目前正在跑的版本號</strong>。不確定的話執行 <code>docker ps --format "{{.Names}}\t{{.Image}}"</code> 就能看到。</div>
+            </div>
+            <div class="done"><div><b>完成的樣子</b>：專案根目錄多一個 4 行的 <code>Dockerfile</code>。</div></div>
+          </li>
+
+          <li class="step">
+            <span class="no">3</span>
+            <h3>建置並啟動</h3>
+            <p class="goal">目標：讓 Docker 用你的 Dockerfile 產出中文版映像檔並啟動。</p>
+            <p>如果你用 docker compose，把 litellm 服務改成用本地 build：</p>
+            <figure class="code" data-lang="yaml">
+              <figcaption><span class="fname"><span class="dot"></span><span>docker-compose.yml（只改兩行）</span></span></figcaption>
+              <pre><code class="lang-yaml">services:
+  litellm:
+    build: .                      # ← 改用本地 Dockerfile 建置
+    image: litellm-zhtw:v1.93.0   # ← 自訂一個 image 名稱
+    # ...其餘設定（埠號、env_file、config 掛載）照你原本的不動</code></pre>
+            </figure>
+            <p>然後在專案資料夾執行：</p>
+            <figure class="code" data-lang="bash">
+              <figcaption>
+                <span class="fname"><span class="dot"></span><span>終端機</span></span>
+                <span class="acts"><button class="mini-btn" data-copy="cmd-build">複製</button></span>
+              </figcaption>
+              <pre><code class="lang-bash" id="cmd-build">docker compose build
+docker compose up -d</code></pre>
+            </figure>
+            <p style="font-size:14.5px;color:var(--text-2)">
+              沒用 compose 的話：<code>docker build -t litellm-zhtw:v1.93.0 .</code>，再照你原本的方式啟動這個 image。
+            </p>
+            <div class="done">
+              <div><b>完成的樣子</b>：建置訊息裡出現這兩行（數字會依版本不同）。
+                <figure class="code" style="margin:10px 0 0" data-lang="text">
+                  <pre><code class="lang-tree">zhtw: patched 48 html files, dict entries = 4362
+zhtw: patched legacy login form</code></pre>
+                </figure>
+              </div>
+            </div>
+          </li>
+
+          <li class="step">
+            <span class="no">4</span>
+            <h3>驗證</h3>
+            <p class="goal">目標：確認畫面真的變成中文。</p>
+            <ol>
+              <li>打開管理介面 <code>http://localhost:4000/ui</code></li>
+              <li>按 <kbd>Ctrl</kbd> + <kbd>F5</kbd> 強制重新整理（清掉瀏覽器快取）</li>
+              <li>介面應該變成中文了 🎉</li>
+            </ol>
+            <div class="note tip">
+              <span class="ni" aria-hidden="true">✦</span>
+              <div>還是英文？<strong>九成是瀏覽器快取</strong>。先確認建置訊息有出現上面那兩行，再開無痕視窗試一次。</div>
+            </div>
+            <div class="done"><div><b>完成的樣子</b>：左側導覽變成「虛擬金鑰／團隊／用量／紀錄」。</div></div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- ============ 04 維護 ============ -->
+      <section id="maintain">
+        <div class="sec-head">
+          <span class="sec-kicker">04 · 長期沿用</span>
+          <h2>日常維護：3 個場景</h2>
+          <p class="lede">部署完之後你只會碰到這三件事，每件都不到一分鐘。</p>
+        </div>
+
+        <h3>A · 發現某處還是英文（字典漏字）</h3>
+        <ol>
+          <li>把畫面上那句<strong>完整的英文</strong>抄下來（大小寫、標點都要一模一樣）。</li>
+          <li>打開 <code>zhtw/dict.json</code>，加一行：<code>"那句英文": "你的翻譯",</code></li>
+          <li>重新建置：<code>docker compose build &amp;&amp; docker compose up -d</code></li>
+          <li>瀏覽器按 <kbd>Ctrl</kbd> + <kbd>F5</kbd>，確認該處變成中文。</li>
+        </ol>
+        <div class="note info">
+          <span class="ni" aria-hidden="true">◆</span>
+          <div>抄英文時，句中<strong>連續的空白會被視為一個空白</strong>（系統會自動壓縮），所以中間多幾個空格沒關係，但<strong>字要完全相同</strong>。</div>
+        </div>
+
+        <h4>懶人版：把這段丟給 AI 代理</h4>
+        <figure class="code plain" data-lang="prompt">
+          <figcaption>
+            <span class="fname"><span class="dot"></span><span>補字典 Prompt</span></span>
+            <span class="acts"><button class="mini-btn" data-copy="prompt-maint">複製</button></span>
+          </figcaption>
+          <pre><code class="lang-prompt" id="prompt-maint" data-file="litellm-zhtw-補字典-prompt.txt">我要補 LiteLLM 中文化的漏字。以下是畫面上還顯示英文的字串，一行一句：
+
+&lt;把你抄下來的英文貼在這裡&gt;
+
+請你：
+1. 先讀 zhtw/dict.json，確認既有術語譯法，翻譯必須與它一致（台灣用語正體中文）。
+2. 把新譯句依 key 的字母順序併回 zhtw/dict.json，維持原本 indent=0、sort_keys=True、
+   ensure_ascii=False 的格式，不要改動其他既有行。
+3. 執行 docker compose build &amp;&amp; docker compose up -d，
+   確認建置輸出的 dict entries 數量比上次增加。
+4. 完成後提醒我按 Ctrl + F5 強制重新整理。</code></pre>
+        </figure>
+
+        <h3>B · 升級 LiteLLM 版本</h3>
+        <ol>
+          <li>改 Dockerfile 第一行的版本號（例 <code>v1.93.0</code> → 新版本）。</li>
+          <li><code>docker compose build &amp;&amp; docker compose up -d</code></li>
+          <li>新版新增的介面文字會<strong>暫時顯示英文</strong>——這是正常的優雅降級，不是故障。照〈A〉補進字典即可。</li>
+        </ol>
+
+        <h3>C · 翻譯要修正</h3>
+        <p>直接在 <code>dict.json</code> 找到那句英文，改冒號後面的中文，重新 build 即可。</p>
+
+        <div class="note warn">
+          <span class="ni" aria-hidden="true">▲</span>
+          <div>
+            <b>想還原成英文？</b>
+            把 <code>docker-compose.yml</code> 的 <code>build: .</code> 與 <code>image:</code> 兩行改回官方 image（<code>image: ghcr.io/berriai/litellm:v1.93.0</code>），<code>docker compose up -d</code> 即可完全還原。<strong>資料庫、金鑰、設定全都不受影響。</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 05 技術原理 ============ -->
+      <section id="tech">
+        <div class="sec-head">
+          <span class="sec-kicker">05 · 給工程師</span>
+          <h2>技術原理</h2>
+          <p class="lede">
+            三張圖講完機制，一張表講完取捨。關鍵一句話：<strong>翻譯 100% 發生在瀏覽器端</strong>，LiteLLM 伺服器本體與 API 完全沒有被更動。
+          </p>
+        </div>
+
+        <h3>圖 1 · 建置期 ＆ 執行期</h3>
+        <div class="dgm">
+          <div class="dgm-hd"><span class="tag">建置期</span> docker build · 只執行一次</div>
+          <div class="dgm-bd">
+            <div class="dnode">
+              <span class="di">1</span>
+              <span class="dc"><b>官方 image</b><small><code>ghcr.io/berriai/litellm:v1.93.0</code>（原封不動）</small></span>
+            </div>
+            <div class="dlink">讀入 <code>dict.json</code> ＋ <code>inject.js</code></div>
+            <div class="dnode hl">
+              <span class="di">2</span>
+              <span class="dc"><b>patch_ui.py</b><small>把 <code>__ZHTW_DICT__</code> 佔位符換成壓縮後的字典 JSON，並包成 <code>&lt;script id="zhtw-i18n"&gt;</code></small></span>
+            </div>
+            <div class="dlink">定位 <code>litellm/proxy/_experimental/out</code></div>
+            <div class="dnode">
+              <span class="di">3</span>
+              <span class="dc"><b>縫進每一頁 HTML</b><small>48 個 <code>.html</code> 的 <code>&lt;/body&gt;</code> 之前，順手把 <code>lang="en"</code> 改成 <code>lang="zh-Hant"</code></small></span>
+            </div>
+            <div class="dlink">JS 攔不到伺服器渲染的頁面 → 字串替換</div>
+            <div class="dnode">
+              <span class="di">4</span>
+              <span class="dc"><b>改寫 ui_login.py</b><small>舊版登入頁是 Python 動態渲染的，不在 <code>out/*.html</code> 裡</small></span>
+            </div>
+            <div class="dlink">產出（<code>zhtw/</code> 隨即刪除，不留在映像檔）</div>
+            <div class="dnode out">
+              <span class="di">✓</span>
+              <span class="dc"><b>litellm-zhtw:v1.93.0</b><small>自訂映像檔，可直接取代官方 image 啟動</small></span>
+            </div>
+          </div>
+          <div class="dbridge">docker compose up -d</div>
+          <div class="dgm-hd"><span class="tag run">執行期</span> 使用者瀏覽器 · 每次開頁</div>
+          <div class="dgm-bd">
+            <div class="dnode">
+              <span class="di">1</span>
+              <span class="dc"><b>開啟 /ui → inject.js 甦醒</b><small><code>DOMContentLoaded</code>（或已載入則立即）觸發 <code>start()</code></small></span>
+            </div>
+            <div class="dlink">先處理已存在的內容</div>
+            <div class="dnode">
+              <span class="di">2</span>
+              <span class="dc"><b>walk(DOM)</b><small><code>createTreeWalker</code> 掃一遍整棵樹，翻譯文字節點與白名單屬性，也翻 <code>document.title</code></small></span>
+            </div>
+            <div class="dlink">React 會不斷重繪 → 需要持續盯著</div>
+            <div class="dnode hl">
+              <span class="di">3</span>
+              <span class="dc"><b>MutationObserver 常駐</b><small>監聽 <code>childList / characterData / attributes</code> ＋ <code>subtree:true</code>；新節點一掛上就補翻</small></span>
+            </div>
+          </div>
+          <div class="dfoot"><b>伺服器 / API / 資料庫：完全沒有被觸碰。</b>翻譯只改瀏覽器裡那一份 DOM。</div>
+        </div>
+
+        <h3>圖 2 · 單一字串的翻譯決策</h3>
+        <div class="dgm">
+          <div class="dgm-hd"><span class="tag">inject.js</span> <code>tr(raw)</code> 的判斷順序</div>
+          <div class="dgm-bd">
+            <div class="chain">
+              <div class="crow solo">
+                <div class="cnode"><b>正規化</b><small><code>raw.replace(/\s+/g,' ').trim()</code> — 壓縮空白、去頭尾。字典的 key 必須是同一形式。</small></div>
+              </div>
+              <div class="cgap">長度 &gt; 300 字元 → 直接放棄（不拿長段落查字典）</div>
+              <div class="crow">
+                <div class="cnode"><b>查 <code>DICT[key]</code></b><small>精確比對，O(1)</small></div>
+                <div class="cout"><span class="lbl">命中</span><span><b>換成中文</b>　←　絕大多數走這條</span></div>
+              </div>
+              <div class="cgap">未命中</div>
+              <div class="crow">
+                <div class="cnode"><b>逐條試 <code>RULES</code> 正則</b><small>錨定 <code>^…$</code>，處理含數字的句型</small></div>
+                <div class="cout"><span class="lbl">命中</span><span><code>Page 3 of 10</code> → <b>第 3 頁，共 10 頁</b></span></div>
+              </div>
+              <div class="cgap">仍未命中</div>
+              <div class="crow solo">
+                <div class="cnode end"><b>維持原本英文</b><small>優雅降級 — 畫面只是顯示英文，功能完全正常，不會壞。</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3>圖 3 · 翻什麼、不翻什麼</h3>
+        <div class="dgm">
+          <div class="dgm-hd"><span class="tag">白名單</span> 只碰畫面上的介面文字</div>
+          <div class="dgm-bd">
+            <div class="scope">
+              <div class="yes">
+                <h5>✓ 會翻</h5>
+                <p>文字節點與少數屬性，就這些。</p>
+                <div class="chips">
+                  <span class="chip mono good">textNode.nodeValue</span>
+                  <span class="chip mono good">placeholder</span>
+                  <span class="chip mono good">title</span>
+                  <span class="chip mono good">aria-label</span>
+                  <span class="chip mono good">alt</span>
+                  <span class="chip mono good">input[submit|button].value</span>
+                  <span class="chip mono good">document.title</span>
+                </div>
+              </div>
+              <div class="no">
+                <h5>✕ 不翻（連子孫一起跳過）</h5>
+                <p>模型回覆、程式碼、使用者輸入一律不碰。</p>
+                <div class="chips">
+                  <span class="chip mono stop">SCRIPT</span>
+                  <span class="chip mono stop">STYLE</span>
+                  <span class="chip mono stop">NOSCRIPT</span>
+                  <span class="chip mono stop">TEXTAREA</span>
+                  <span class="chip mono stop">CODE</span>
+                  <span class="chip mono stop">PRE</span>
+                  <span class="chip mono stop">KBD</span>
+                  <span class="chip mono stop">SAMP</span>
+                  <span class="chip mono stop">[contenteditable]</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dfoot"><code>acceptNode</code> 對這些標籤回 <code>FILTER_REJECT</code>，TreeWalker 會<b>連同其子孫整棵略過</b>。</div>
+        </div>
+
+        <h3>關鍵設計決策</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>設計</th><th>做法</th><th>為什麼</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>冪等</td>
+                <td><code>if "zhtw-i18n" in s: continue</code></td>
+                <td>重跑 build 不會重複注入。</td>
+              </tr>
+              <tr>
+                <td>防提前關閉<span class="sub">最容易踩的雷</span></td>
+                <td>payload 裡所有 <code>&lt;/</code> 換成 <code>&lt;\/</code></td>
+                <td>字典是內嵌在 <code>&lt;script&gt;</code> 裡，資料中若出現 <code>&lt;/script&gt;</code>（或任何 <code>&lt;/</code>）會讓 HTML parser 提前關閉 script。而在 JS/JSON 字串裡 <code>&lt;\/</code> 與 <code>&lt;/</code> 完全等價。</td>
+              </tr>
+              <tr>
+                <td>失敗即停</td>
+                <td><code>assert count &gt; 0</code></td>
+                <td>官方哪天改了 UI 路徑，build 會直接紅燈，而不是默默產出一個沒翻譯的 image。</td>
+              </tr>
+              <tr>
+                <td>精確比對優先</td>
+                <td>正規化空白後查表，查不到才套 <code>RULES</code></td>
+                <td>零誤譯風險。代價是被框架拆成多個文字節點的句子查不到。</td>
+              </tr>
+              <tr>
+                <td>長度上限</td>
+                <td><code>key.length &gt; 300</code> 跳過</td>
+                <td>避免拿長段落去做無意義的字典查詢。</td>
+              </tr>
+              <tr>
+                <td>版本釘選</td>
+                <td><code>FROM …:v1.93.0</code></td>
+                <td>用 <code>latest</code> / <code>main-stable</code> 會讓某次 build 悄悄換版，導致字典對不上、大量文字回退英文。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note info">
+          <span class="ni" aria-hidden="true">◆</span>
+          <div>
+            <b>版本釘選小抄</b>
+            LiteLLM 的 ghcr 標籤現在用<strong>純版本號</strong>（如 <code>v1.93.0</code>）；舊的 <code>main-v&lt;版本&gt;</code> 命名大約停在 v1.66。想查有哪些 tag 可用 <code>docker manifest inspect</code> 逐一探測。
+          </div>
+        </div>
+
+        <h3>已知限制與取捨</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>取捨</th><th>換到什麼</th><th>代價</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>字典 inline 進<br>每一個 HTML</td>
+                <td>零額外請求，沒有路徑與快取問題，載入時序不用管。</td>
+                <td>image 稍大、內容冗餘（數十份重複字典）。要更省可改共用一支外部 JS，但要自行處理載入時序與快取。</td>
+              </tr>
+              <tr>
+                <td>純前端翻譯</td>
+                <td>伺服器與 API 完全不動，隨時可還原。</td>
+                <td>動態內容是「先出現英文 → observer 立刻替換」，理論上有極短暫閃現，實務上肉眼幾乎無感。</td>
+              </tr>
+              <tr>
+                <td>精確比對</td>
+                <td>絕不亂翻，沒有語意誤譯。</td>
+                <td>一句話被框架拆成多個文字節點時查不到，要靠 <code>RULES</code> 或拆句補字典解決。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>字典是怎麼做出來的</h3>
+        <div class="miniflow">
+          <div class="mf"><b>1 · 萃取</b><span>從官方原始碼對應版本 tag 的 <code>ui/litellm-dashboard/src</code>，用正則撈出所有 UI 字串常值（約 4,300+ 條）。</span></div>
+          <div class="mf"><b>2 · 翻譯</b><span>交給 LLM 分批平行翻譯，並使用<em>固定術語表</em>確保全站一致（Virtual Key→虛擬金鑰、Spend→花費…）。</span></div>
+          <div class="mf"><b>3 · 輸出</b><span>合併去重，<code>json.dumps(indent=0, sort_keys=True, ensure_ascii=False)</code>——每行一條、依字母排序，方便日後 diff。</span></div>
+        </div>
+        <h4>升級補字流程</h4>
+        <p style="font-size:15px">
+          <code>docker cp</code> 匯出新舊兩版 image 的 <code>out/</code> → 抽取字串常值取<strong>差集</strong> → 機械過濾雜訊（Tailwind class、SVG path、程式碼片段；注意別誤殺以引號開頭的 placeholder 範例）→ 交 LLM 翻譯新增部分 → 併回 <code>dict.json</code>。
+        </p>
+      </section>
+
+      <!-- ============ 06 原始碼 ============ -->
+      <section id="source">
+        <div class="sec-head">
+          <span class="sec-kicker">06 · 可直接使用</span>
+          <h2>完整原始碼</h2>
+          <p class="lede">
+            <code>inject.js</code> 與 <code>patch_ui.py</code> <strong>一字不改</strong>即可使用。每個區塊右上角都能一鍵複製或下載成檔案。
+          </p>
+        </div>
+
+        <details class="fold" open>
+          <summary>zhtw/inject.js<span class="tagline2">執行期翻譯引擎 · 113 行</span></summary>
+          <div class="fold-bd">
+            <figure class="code scroll" data-lang="js">
+              <figcaption>
+                <span class="fname"><span class="dot"></span><span>zhtw/inject.js</span></span>
+                <span class="acts">
+                  <button class="mini-btn" data-copy="src-inject">複製</button>
+                  <button class="mini-btn" data-dl="src-inject">下載</button>
+                </span>
+              </figcaption>
+              <pre><code class="lang-js" id="src-inject" data-file="inject.js">(function () {
+  'use strict';
+  var DICT = __ZHTW_DICT__;
+  var RULES = [
+    [/^Showing (\d+)\s*(?:to|-|–)\s*(\d+) of (\d+)(?: results?)?$/, '顯示第 $1 至 $2 筆,共 $3 筆'],
+    [/^Total (\d+) items?$/, '共 $1 筆'],
+    [/^Page (\d+) of (\d+)$/, '第 $1 頁,共 $2 頁'],
+    [/^(\d+) \/ page$/, '$1 筆/頁'],
+    [/^Showing (\d+) of (\d+) results?$/, '顯示 $1 筆,共 $2 筆'],
+    [/^(\d+) selected$/, '已選 $1 筆'],
+    [/^Copied!?$/, '已複製'],
+    [/^(\d+) models?$/, '$1 個模型'],
+    [/^(\d+) members?$/, '$1 位成員'],
+    [/^(\d+) keys?$/, '$1 把金鑰'],
+    [/^(\d+) rows?$/, '$1 列'],
+    [/^(\d+) results?$/, '$1 筆結果'],
+    [/^(\d+) teams?$/, '$1 個團隊'],
+    [/^(\d+) users?$/, '$1 位使用者'],
+    [/^(\d+) organizations?$/, '$1 個組織'],
+    [/^(\d+) items?$/, '$1 筆']
+  ];
+  var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, CODE: 1, PRE: 1, KBD: 1, SAMP: 1 };
+
+  function tr(raw) {
+    if (!raw) return null;
+    var key = raw.replace(/\s+/g, ' ').trim();
+    if (!key || key.length &gt; 300) return null;
+    var hit = DICT[key];
+    if (hit !== undefined) return hit;
+    for (var i = 0; i &lt; RULES.length; i++) {
+      if (RULES[i][0].test(key)) return key.replace(RULES[i][0], RULES[i][1]);
+    }
+    return null;
+  }
+
+  function processText(node) {
+    var p = node.parentElement;
+    if (p &amp;&amp; (SKIP_TAGS[p.tagName] || p.isContentEditable)) return;
+    var v = tr(node.nodeValue);
+    if (v != null &amp;&amp; v !== node.nodeValue) node.nodeValue = v;
+  }
+
+  function processElement(el) {
+    if (SKIP_TAGS[el.tagName]) return;
+    for (var i = 0; i &lt; ATTRS.length; i++) {
+      var a = ATTRS[i];
+      if (el.hasAttribute &amp;&amp; el.hasAttribute(a)) {
+        var val = el.getAttribute(a);
+        var v = tr(val);
+        if (v != null &amp;&amp; v !== val) el.setAttribute(a, v);
+      }
+    }
+    if (el.tagName === 'INPUT' &amp;&amp; (el.type === 'submit' || el.type === 'button') &amp;&amp; el.value) {
+      var v2 = tr(el.value);
+      if (v2 != null &amp;&amp; v2 !== el.value) el.value = v2;
+    }
+  }
+
+  function walk(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { processText(root); return; }
+    if (root.nodeType !== 1 &amp;&amp; root.nodeType !== 9 &amp;&amp; root.nodeType !== 11) return;
+    if (root.nodeType === 1) {
+      if (SKIP_TAGS[root.tagName] || root.isContentEditable) return;
+      processElement(root);
+    }
+    var w = document.createTreeWalker(root, 5, {
+      acceptNode: function (n) {
+        if (n.nodeType === 1) {
+          return (SKIP_TAGS[n.tagName] || n.isContentEditable) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var n;
+    while ((n = w.nextNode())) {
+      if (n.nodeType === 3) processText(n); else processElement(n);
+    }
+  }
+
+  var mo = new MutationObserver(function (muts) {
+    for (var i = 0; i &lt; muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'characterData') {
+        processText(m.target);
+      } else if (m.type === 'attributes') {
+        if (m.target.nodeType === 1) processElement(m.target);
+      } else {
+        for (var j = 0; j &lt; m.addedNodes.length; j++) walk(m.addedNodes[j]);
+      }
+    }
+  });
+
+  function start() {
+    walk(document.documentElement);
+    var t = tr(document.title);
+    if (t) document.title = t;
+    mo.observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ATTRS
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();</code></pre>
+            </figure>
+          </div>
+        </details>
+
+        <details class="fold">
+          <summary>zhtw/patch_ui.py<span class="tagline2">建置期注入腳本 · 67 行</span></summary>
+          <div class="fold-bd">
+            <figure class="code scroll" data-lang="py">
+              <figcaption>
+                <span class="fname"><span class="dot"></span><span>zhtw/patch_ui.py</span></span>
+                <span class="acts">
+                  <button class="mini-btn" data-copy="src-patch">複製</button>
+                  <button class="mini-btn" data-dl="src-patch">下載</button>
+                </span>
+              </figcaption>
+              <pre><code class="lang-py" id="src-patch" data-file="patch_ui.py">"""Build-time patcher: inline zh-TW translator into every UI HTML + patch legacy login form.
+
+Runs INSIDE the litellm docker image (see Dockerfile).
+"""
+import json
+import pathlib
+
+import litellm
+
+PKG = pathlib.Path(litellm.__file__).parent
+OUT = PKG / "proxy" / "_experimental" / "out"
+HERE = pathlib.Path(__file__).parent
+
+# --- 1) inline translator into all exported HTML files ---
+dict_data = json.loads((HERE / "dict.json").read_text(encoding="utf-8"))
+inject = (HERE / "inject.js").read_text(encoding="utf-8")
+payload = json.dumps(dict_data, ensure_ascii=False, separators=(",", ":"))
+js = inject.replace("__ZHTW_DICT__", payload)
+# never emit a literal "&lt;/" inside the inline &lt;script&gt; (would close it early);
+# "&lt;\/" is identical to "&lt;/" inside JS/JSON strings
+js = js.replace("&lt;/", "&lt;\\/")
+snippet = '&lt;script id="zhtw-i18n"&gt;' + js + "&lt;/script&gt;"
+
+count = 0
+for f in OUT.rglob("*.html"):
+    s = f.read_text(encoding="utf-8")
+    if "zhtw-i18n" in s:
+        continue
+    s = s.replace('&lt;html lang="en"', '&lt;html lang="zh-Hant"')
+    if "&lt;/body&gt;" in s:
+        s = s.replace("&lt;/body&gt;", snippet + "&lt;/body&gt;", 1)
+    else:
+        s += snippet
+    f.write_text(s, encoding="utf-8")
+    count += 1
+print(f"zhtw: patched {count} html files, dict entries = {len(dict_data)}")
+assert count &gt; 0, "no html files patched — UI path changed?"
+
+# --- 2) legacy python-rendered login form ---
+login_py = PKG / "proxy" / "common_utils" / "html_forms" / "ui_login.py"
+if login_py.exists():
+    s = login_py.read_text(encoding="utf-8")
+    for a, b in [
+        ('&lt;html lang="en"&gt;', '&lt;html lang="zh-Hant"&gt;'),
+        ("&lt;title&gt;LiteLLM Login&lt;/title&gt;", "&lt;title&gt;LiteLLM 登入&lt;/title&gt;"),
+        ("&lt;h2&gt;Login&lt;/h2&gt;", "&lt;h2&gt;登入&lt;/h2&gt;"),
+        ("Access your LiteLLM Admin UI.", "登入 LiteLLM 管理介面。"),
+        ("&gt;Default Credentials", "&gt;預設登入資訊"),
+        (
+            "By default, Username is &lt;code&gt;admin&lt;/code&gt; and Password is your set LiteLLM Proxy &lt;code&gt;MASTER_KEY&lt;/code&gt;.",
+            "預設帳號為 &lt;code&gt;admin&lt;/code&gt;,密碼為您設定的 LiteLLM Proxy &lt;code&gt;MASTER_KEY&lt;/code&gt;。",
+        ),
+        (
+            'Need to set UI credentials or SSO? &lt;a href="https://docs.litellm.ai/docs/proxy/ui" target="_blank"&gt;Check the documentation&lt;/a&gt;.',
+            '需要設定 UI 帳密或 SSO?請&lt;a href="https://docs.litellm.ai/docs/proxy/ui" target="_blank"&gt;參閱文件&lt;/a&gt;。',
+        ),
+        ("&gt;Username&lt;", "&gt;帳號&lt;"),
+        ("&gt;Password&lt;", "&gt;密碼&lt;"),
+        ('placeholder="Enter your username"', 'placeholder="請輸入帳號"'),
+        ('placeholder="Enter your password"', 'placeholder="請輸入密碼"'),
+        ("&gt;Show password&lt;", "&gt;顯示密碼&lt;"),
+        ('value="Login"', 'value="登入"'),
+    ]:
+        s = s.replace(a, b)
+    login_py.write_text(s, encoding="utf-8")
+    print("zhtw: patched legacy login form")</code></pre>
+            </figure>
+          </div>
+        </details>
+
+        <details class="fold">
+          <summary>zhtw/dict.json<span class="tagline2">起步字典 · 97 條常用詞</span></summary>
+          <div class="fold-bd">
+            <p style="font-size:14.5px;color:var(--text-2);margin-top:12px">
+              這份 97 條足以讓左側導覽、主要按鈕、表格欄位立刻變中文，適合先看效果。<strong>完整的 4,362 條在 GitHub 上</strong>：<a href="https://github.com/Sen-CaPoo/litellm-zhtw/blob/main/zhtw/dict.json" target="_blank" rel="noopener">zhtw/dict.json ↗</a>。想自己產生（換語言、或補新版字串）看<a href="#tech">〈萃取 → LLM 翻譯 → 輸出〉</a>流程。
+            </p>
+            <figure class="code scroll" data-lang="json">
+              <figcaption>
+                <span class="fname"><span class="dot"></span><span>zhtw/dict.json</span></span>
+                <span class="acts">
+                  <button class="mini-btn" data-copy="src-dict">複製</button>
+                  <button class="mini-btn" data-dl="src-dict">下載</button>
+                </span>
+              </figcaption>
+              <pre><code class="lang-json" id="src-dict" data-file="dict.json">{
+"+ Create New Key": "+ 建立新金鑰",
+"API Keys": "API 金鑰",
+"API Reference": "API 參考文件",
+"Actions": "操作",
+"Active": "啟用中",
+"Add": "新增",
+"Admin": "管理員",
+"Advanced Settings": "進階設定",
+"Alias": "別名",
+"All": "全部",
+"Apply": "套用",
+"Audit Logs": "稽核紀錄",
+"Budget": "預算",
+"Budgets": "預算",
+"Caching": "快取",
+"Cancel": "取消",
+"Close": "關閉",
+"Confirm": "確認",
+"Copied": "已複製",
+"Copy": "複製",
+"Create": "建立",
+"Create New Key": "建立新金鑰",
+"Created": "建立時間",
+"Delete": "刪除",
+"Description": "描述",
+"Details": "詳細資訊",
+"Disabled": "已停用",
+"Documentation": "文件",
+"Edit": "編輯",
+"Email": "電子郵件",
+"Enabled": "已啟用",
+"Experimental": "實驗性功能",
+"Expired": "已到期",
+"Expires": "到期",
+"Failed": "失敗",
+"Filter": "篩選",
+"Guardrails": "防護規則",
+"Internal Users": "內部使用者",
+"Key": "金鑰",
+"Key Alias": "金鑰別名",
+"Loading...": "載入中…",
+"Login": "登入",
+"Logout": "登出",
+"Logs": "紀錄",
+"MCP Servers": "MCP 伺服器",
+"Max Budget": "預算上限",
+"Member": "成員",
+"Metrics": "指標",
+"Model": "模型",
+"Models": "模型",
+"Models + Endpoints": "模型與端點",
+"Name": "名稱",
+"Never": "從未",
+"Next": "下一頁",
+"No": "否",
+"None": "無",
+"Optional": "選填",
+"Organizations": "組織",
+"Overview": "概觀",
+"Password": "密碼",
+"Playground": "測試區",
+"Previous": "上一頁",
+"Prompts": "提示",
+"Rate Limits": "速率限制",
+"Refresh": "重新整理",
+"Remove": "移除",
+"Requests": "請求",
+"Reset": "重設",
+"Role": "角色",
+"Router Settings": "路由設定",
+"Save": "儲存",
+"Search": "搜尋",
+"Settings": "設定",
+"Spend": "花費",
+"Status": "狀態",
+"Submit": "送出",
+"Success": "成功",
+"Tags": "標籤",
+"Team ID": "團隊 ID",
+"Team Name": "團隊名稱",
+"Teams": "團隊",
+"Test Connection": "測試連線",
+"Test Key": "測試金鑰",
+"Time": "時間",
+"Tools": "工具",
+"Total Spend": "花費總額",
+"Total Tokens": "Token 總數",
+"Type": "類型",
+"Unlimited": "無限制",
+"Updated": "已更新",
+"Usage": "用量",
+"User ID": "使用者 ID",
+"Username": "帳號",
+"Users": "使用者",
+"Vector Stores": "向量儲存庫",
+"Virtual Keys": "虛擬金鑰",
+"Yes": "是"
+}</code></pre>
+            </figure>
+          </div>
+        </details>
+      </section>
+
+      <!-- ============ 07 FAQ ============ -->
+      <section id="faq">
+        <div class="sec-head">
+          <span class="sec-kicker">07 · FAQ</span>
+          <h2>常見問題</h2>
+        </div>
+        <div class="faq">
+          <details open>
+            <summary>改了字典後畫面沒變？</summary>
+            <div class="ans">先確認有重新建置：<code>docker compose build &amp;&amp; docker compose up -d</code>，再按 <kbd>Ctrl</kbd> + <kbd>F5</kbd> 清快取。<strong>瀏覽器快取是最常見的原因</strong>，開無痕視窗可以快速排除。</div>
+          </details>
+          <details>
+            <summary>會拖慢系統嗎？</summary>
+            <div class="ans">不會有可感知的影響。翻譯發生在你自己的瀏覽器裡，查字典是雜湊表 O(1) 瞬間完成；伺服器端（API 本體）完全沒被更動。</div>
+          </details>
+          <details>
+            <summary>API 回覆的內容也會被翻譯嗎？</summary>
+            <div class="ans">不會。這套機制<strong>只翻管理介面的畫面文字</strong>，模型回答與 API 資料完全不受影響——<code>CODE / PRE / TEXTAREA / contenteditable</code> 都在保護名單裡。</div>
+          </details>
+          <details>
+            <summary>萬一整個中文化壞掉怎麼辦？</summary>
+            <div class="ans">最壞情況就是<strong>介面變回英文，功能一切正常</strong>。因為從未修改 LiteLLM 本體，把 <code>docker-compose.yml</code> 換回官方 image 即可完全還原，資料庫與金鑰都不受影響。</div>
+          </details>
+          <details>
+            <summary>能翻成簡體 / 日文 / 其他語言嗎？</summary>
+            <div class="ans">可以。只換 <code>dict.json</code> 的內容（以及 <code>inject.js</code> 裡 <code>RULES</code> 的句型），其他檔案完全不用動。</div>
+          </details>
+          <details>
+            <summary>升級 LiteLLM 之後會不會整個爛掉？</summary>
+            <div class="ans">不會。已實測跨版本升級：改 Dockerfile 的版本號、重新 build 即可。新版新增的字串會暫時顯示英文，補字典就好。真正會讓它失效的只有一件事——官方改掉 UI 匯出路徑，而那種情況 <code>assert count &gt; 0</code> 會讓 build 直接失敗提醒你。</div>
+          </details>
+          <details>
+            <summary>可以不用 Docker 嗎？</summary>
+            <div class="ans">原理可以，但本文流程綁在 <code>docker build</code>。若是 pip 安裝的 LiteLLM，等同於在套件目錄手動跑一次 <code>patch_ui.py</code>；缺點是每次 <code>pip install -U litellm</code> 都要重跑，而且沒有映像檔那種「隨時還原」的乾淨性。</div>
+          </details>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p><strong>本文分享的是方法本身，程式碼可自由取用、修改（MIT 授權）。</strong>有問題歡迎在討論串交流 🙌</p>
+        <p>
+          原始碼與完整字典：<a href="https://github.com/Sen-CaPoo/litellm-zhtw" target="_blank" rel="noopener">github.com/Sen-CaPoo/litellm-zhtw</a>
+          　·　<a href="https://github.com/Sen-CaPoo/litellm-zhtw/archive/refs/heads/main.zip">下載整包 ZIP</a>
+        </p>
+        <p style="margin-bottom:0">字典注入法 · LiteLLM Admin UI 正體中文化 · 以 v1.93.0 實測</p>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<button id="toTop" aria-label="回到頂部">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 小工具 ---------- */
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  var toastEl = $('#toast'), toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('on'); }, 1900);
+  }
+
+  /* ---------- 主題 ---------- */
+  $('#themeToggle').addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('zhtw-theme', next); } catch (e) {}
+  });
+
+  /* ---------- 行動版目錄 ---------- */
+  var sidebar = $('#sidebar'), scrim = $('#scrim'), navToggle = $('#navToggle');
+  function setNav(open) {
+    sidebar.classList.toggle('open', open);
+    scrim.classList.toggle('on', open);
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  navToggle.addEventListener('click', function () { setNav(!sidebar.classList.contains('open')); });
+  scrim.addEventListener('click', function () { setNav(false); });
+  $$('#toc a').forEach(function (a) {
+    a.addEventListener('click', function () { if (window.innerWidth <= 1000) setNav(false); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) setNav(false);
+  });
+
+  /* ---------- 進度條 + 回到頂部 ---------- */
+  var bar = $('#progressBar'), toTop = $('#toTop'), ticking = false;
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? Math.min(1, window.scrollY / h) : 0;
+    bar.style.width = (p * 100).toFixed(2) + '%';
+    toTop.classList.toggle('on', window.scrollY > 700);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+  }, { passive: true });
+  onScroll();
+  toTop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+  /* ---------- 目錄高亮 ---------- */
+  var links = $$('#toc a');
+  var sections = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  function spy() {
+    var top = window.scrollY + parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop || 76) + 12;
+    var cur = 0;
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].offsetTop <= top) cur = i; else break;
+    }
+    // 已滾到底時強制高亮最後一項
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = sections.length - 1;
+    links.forEach(function (a, i) { a.classList.toggle('active', i === cur); });
+    var act = links[cur];
+    if (act && window.innerWidth > 1000) {
+      var sb = sidebar.getBoundingClientRect(), r = act.getBoundingClientRect();
+      if (r.top < sb.top + 8 || r.bottom > sb.bottom - 8) {
+        sidebar.scrollTop += r.top - sb.top - sb.height / 2 + r.height / 2;
+      }
+    }
+  }
+  var spyTick = false;
+  window.addEventListener('scroll', function () {
+    if (!spyTick) { spyTick = true; requestAnimationFrame(function () { spy(); spyTick = false; }); }
+  }, { passive: true });
+  window.addEventListener('resize', spy, { passive: true });
+
+  /* ---------- 複製 / 下載 ---------- */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (res, rej) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      ok ? res() : rej();
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('[data-copy],[data-dl],[data-expand]') : null;
+    if (!btn) return;
+
+    if (btn.hasAttribute('data-expand')) {
+      var box = document.getElementById(btn.getAttribute('data-expand'));
+      var collapsed = box.getAttribute('data-collapsed') === '1';
+      box.setAttribute('data-collapsed', collapsed ? '0' : '1');
+      btn.textContent = collapsed ? '收合' : '展開全文';
+      if (!collapsed) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
+
+    var id = btn.getAttribute('data-copy') || btn.getAttribute('data-dl');
+    var src = document.getElementById(id);
+    if (!src) return;
+    var text = src.textContent;
+
+    if (btn.hasAttribute('data-copy')) {
+      var label = btn.textContent;
+      copyText(text).then(function () {
+        btn.classList.add('ok');
+        btn.textContent = '已複製 ✓';
+        toast('已複製到剪貼簿');
+        setTimeout(function () { btn.classList.remove('ok'); btn.textContent = label; }, 1800);
+      }).catch(function () { toast('複製失敗，請手動選取'); });
+    } else {
+      var name = src.getAttribute('data-file') || (id + '.txt');
+      var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      toast('已下載 ' + name);
+    }
+  });
+
+  /* ---------- 極簡語法上色 ---------- */
+  var esc = function (s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  var PATTERNS = {
+    js: [
+      ['com', /\/\/[^\n]*|\/\*[\s\S]*?\*\//],
+      ['str', /'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`/],
+      ['re', /\/(?![*\/])(?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^\/\\\n])+\/[gimsuy]*/],
+      ['key', /\b(?:function|return|var|let|const|if|else|for|while|new|typeof|instanceof|null|undefined|true|false|this|void|delete|in|of|break|continue|try|catch|finally|throw)\b/],
+      ['num', /\b0x[\da-fA-F]+\b|\b\d+(?:\.\d+)?\b/],
+      ['fn', /\b[A-Za-z_$][\w$]*(?=\s*\()/]
+    ],
+    py: [
+      ['str', /'''[\s\S]*?'''|"""[\s\S]*?"""|[rbuf]{0,2}'(?:\\.|[^'\\\n])*'|[rbuf]{0,2}"(?:\\.|[^"\\\n])*"/],
+      ['com', /#[^\n]*/],
+      ['key', /\b(?:import|from|as|def|class|return|if|elif|else|for|while|in|not|and|or|is|None|True|False|assert|with|try|except|finally|raise|pass|break|continue|lambda|global|yield)\b/],
+      ['num', /\b\d+(?:\.\d+)?\b/],
+      ['fn', /\b[A-Za-z_][\w]*(?=\s*\()/]
+    ],
+    json: [
+      ['atr', /"(?:\\.|[^"\\])*"(?=\s*:)/],
+      ['str', /"(?:\\.|[^"\\])*"/],
+      ['key', /\b(?:true|false|null)\b/],
+      ['num', /-?\b\d+(?:\.\d+)?\b/]
+    ],
+    yaml: [
+      ['com', /#[^\n]*/],
+      ['atr', /^[ \t-]*[\w.$-]+(?=\s*:)/m],
+      ['str', /'(?:[^'\n])*'|"(?:\\.|[^"\\\n])*"/],
+      ['key', /\b(?:true|false|null|yes|no|on|off)\b/],
+      ['num', /\b\d+(?:\.\d+)?\b/]
+    ],
+    dockerfile: [
+      ['com', /#[^\n]*/],
+      ['key', /^\s*(?:FROM|COPY|RUN|CMD|ENV|ARG|WORKDIR|EXPOSE|ENTRYPOINT|LABEL|USER|VOLUME|ADD|HEALTHCHECK|SHELL|STOPSIGNAL|ONBUILD)\b/mi],
+      ['str', /"(?:\\.|[^"\\\n])*"|'(?:[^'\n])*'/],
+      ['num', /\bv?\d+(?:\.\d+)+\b/]
+    ],
+    bash: [
+      ['com', /#[^\n]*/],
+      ['str', /"(?:\\.|[^"\\\n])*"|'(?:[^'\n])*'/],
+      ['key', /^\s*(?:docker|curl|python|npm|cd|ls|sudo|netsh|grep)\b/mi],
+      ['op', /\s(?:-{1,2}[\w-]+)\b/],
+      ['num', /\bv?\d+(?:\.\d+)+\b/]
+    ],
+    prompt: [
+      ['hd', /^■[^\n]*/m],
+      ['atr', /（[^）\n]{1,30}）/],
+      ['com', /^\s*(?:\d+\.|・)/m],
+      ['str', /〈[^〉\n]*〉/]
+    ],
+    tree: [
+      ['com', /←[^\n]*|#[^\n]*/],
+      ['num', /\b\d{2,}\b/]
+    ]
+  };
+  function build(rules) {
+    return new RegExp(rules.map(function (r) { return '(' + r[1].source + ')'; }).join('|'),
+      'g' + (rules.some(function (r) { return r[1].flags.indexOf('m') >= 0; }) ? 'm' : '') +
+      (rules.some(function (r) { return r[1].flags.indexOf('i') >= 0; }) ? 'i' : ''));
+  }
+  var COMPILED = {};
+  Object.keys(PATTERNS).forEach(function (k) { COMPILED[k] = build(PATTERNS[k]); });
+
+  $$('pre > code[class^="lang-"]').forEach(function (code) {
+    var lang = code.className.replace('lang-', '').trim();
+    var rules = PATTERNS[lang];
+    var src = code.textContent;
+    if (!rules) { code.textContent = src; return; }
+    var re = COMPILED[lang], out = '', last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(src)) !== null) {
+      if (m.index > last) out += esc(src.slice(last, m.index));
+      var cls = null;
+      for (var g = 1; g < m.length; g++) { if (m[g] !== undefined) { cls = rules[g - 1][0]; break; } }
+      out += '<span class="tok-' + cls + '">' + esc(m[0]) + '</span>';
+      last = m.index + m[0].length;
+      if (m[0].length === 0) re.lastIndex++;
+    }
+    out += esc(src.slice(last));
+    code.innerHTML = out;
+  });
+
+  /* ---------- 列印時展開全部 ---------- */
+  window.addEventListener('beforeprint', function () {
+    $$('details').forEach(function (d) { d.dataset.wasOpen = d.open ? '1' : '0'; d.open = true; });
+    $$('.clip').forEach(function (c) { c.setAttribute('data-collapsed', '0'); });
+  });
+  window.addEventListener('afterprint', function () {
+    $$('details').forEach(function (d) { d.open = d.dataset.wasOpen === '1'; });
+  });
+
+  /* ---------- 開場 ---------- */
+  spy();
+})();
+</script>
+</body>
+</html>

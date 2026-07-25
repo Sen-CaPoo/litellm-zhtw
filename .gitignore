@@ -1,0 +1,15 @@
+# === 機密：絕對不可提交 ===
+.env
+.env.*
+!.env.example
+
+# === 資料庫備份：含虛擬金鑰、用量與 prompt／回應內文 ===
+*.sql
+*.sql.gz
+*.dump
+backup_*
+
+# === 系統雜物 ===
+Thumbs.db
+desktop.ini
+.DS_Store
