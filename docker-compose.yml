@@ -1,7 +1,7 @@
 services:
   litellm:
     build: .
-    image: litellm-zhtw:v1.93.0
+    image: litellm-zhtw:v1.94.0
     container_name: litellm
     restart: unless-stopped
     ports:
