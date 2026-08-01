@@ -22,6 +22,9 @@ SOFTWARE.
 
 ---
 
-本專案的英翻中字典（zhtw/dict.json）其 key 為 LiteLLM 管理介面的原始英文字串，
-LiteLLM 本身採 MIT 授權（https://github.com/BerriAI/litellm）。
-中文譯文部分同樣以 MIT 授權釋出。
+The dictionary keys reproduce source strings from the LiteLLM Admin UI.
+LiteLLM is separately distributed under the MIT License:
+https://github.com/BerriAI/litellm
+
+The translation values and localization code in this repository are released
+under the license above.

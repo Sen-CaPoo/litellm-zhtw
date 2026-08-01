@@ -1,35 +1,48 @@
 (function () {
   'use strict';
-  var DICT = __ZHTW_DICT__;
+  var DICT = __I18N_DICT__;
+  var HTML_LANG = __I18N_HTML_LANG__;
   var RULES = [
-    [/^Showing (\d+)\s*(?:to|-|–)\s*(\d+) of (\d+)(?: results?)?$/, '顯示第 $1 至 $2 筆,共 $3 筆'],
-    [/^Total (\d+) items?$/, '共 $1 筆'],
-    [/^Page (\d+) of (\d+)$/, '第 $1 頁,共 $2 頁'],
-    [/^(\d+) \/ page$/, '$1 筆/頁'],
-    [/^Showing (\d+) of (\d+) results?$/, '顯示 $1 筆,共 $2 筆'],
-    [/^(\d+) selected$/, '已選 $1 筆'],
-    [/^Copied!?$/, '已複製'],
-    [/^(\d+) models?$/, '$1 個模型'],
-    [/^(\d+) members?$/, '$1 位成員'],
-    [/^(\d+) keys?$/, '$1 把金鑰'],
-    [/^(\d+) rows?$/, '$1 列'],
-    [/^(\d+) results?$/, '$1 筆結果'],
-    [/^(\d+) teams?$/, '$1 個團隊'],
-    [/^(\d+) users?$/, '$1 位使用者'],
-    [/^(\d+) organizations?$/, '$1 個組織'],
-    [/^(\d+) items?$/, '$1 筆']
+    [/^Showing (\d+)\s*(?:to|-|–)\s*(\d+) of (\d+)(?: results?)?$/, 'Showing $1 to $2 of $3'],
+    [/^Total (\d+) items?$/, 'Total $1 items'],
+    [/^Page (\d+) of (\d+)$/, 'Page $1 of $2'],
+    [/^(\d+) \/ page$/, '$1 / page'],
+    [/^Showing (\d+) of (\d+) results?$/, 'Showing $1 of $2 results'],
+    [/^(\d+) selected$/, '$1 selected'],
+    [/^(\d+) models?$/, '$1 models'],
+    [/^(\d+) members?$/, '$1 members'],
+    [/^(\d+) keys?$/, '$1 keys'],
+    [/^(\d+) rows?$/, '$1 rows'],
+    [/^(\d+) results?$/, '$1 results'],
+    [/^(\d+) teams?$/, '$1 teams'],
+    [/^(\d+) users?$/, '$1 users'],
+    [/^(\d+) organizations?$/, '$1 organizations'],
+    [/^(\d+) items?$/, '$1 items']
   ];
   var ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
   var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, CODE: 1, PRE: 1, KBD: 1, SAMP: 1 };
 
+  function lookup(key) {
+    return Object.prototype.hasOwnProperty.call(DICT, key) ? DICT[key] : undefined;
+  }
+
   function tr(raw) {
     if (!raw) return null;
-    var key = raw.replace(/\s+/g, ' ').trim();
+    var normalized = raw.replace(/\s+/g, ' ');
+    var key = normalized.trim();
     if (!key || key.length > 300) return null;
-    var hit = DICT[key];
+    var hit = lookup(key);
+    if (hit === undefined && normalized !== key) hit = lookup(normalized);
     if (hit !== undefined) return hit;
+    if (HTML_LANG === 'en') return null;
     for (var i = 0; i < RULES.length; i++) {
-      if (RULES[i][0].test(key)) return key.replace(RULES[i][0], RULES[i][1]);
+      var match = key.match(RULES[i][0]);
+      if (!match) continue;
+      var template = lookup(RULES[i][1]);
+      if (template === undefined) return null;
+      return template.replace(/\$(\d+)/g, function (token, index) {
+        return match[Number(index)] !== undefined ? match[Number(index)] : token;
+      });
     }
     return null;
   }
@@ -93,6 +106,8 @@
   });
 
   function start() {
+    document.documentElement.setAttribute('lang', HTML_LANG);
+    if (HTML_LANG === 'en') return;
     walk(document.documentElement);
     var t = tr(document.title);
     if (t) document.title = t;

@@ -1,4 +1,5 @@
 FROM ghcr.io/berriai/litellm:v1.94.0
 
+ARG LITELLM_UI_LANG=zh-TW
 COPY zhtw/ /zhtw/
-RUN python /zhtw/patch_ui.py && rm -rf /zhtw
+RUN LITELLM_UI_LANG="$LITELLM_UI_LANG" python /zhtw/patch_ui.py && rm -rf /zhtw
