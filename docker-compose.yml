@@ -1,7 +1,10 @@
 services:
   litellm:
-    build: .
-    image: litellm-zhtw:v1.94.0
+    build:
+      context: .
+      args:
+        LITELLM_UI_LANG: ${LITELLM_UI_LANG:-zh-TW}
+    image: litellm-i18n:v1.94.0-${LITELLM_UI_LANG:-zh-TW}
     container_name: litellm
     restart: unless-stopped
     ports:

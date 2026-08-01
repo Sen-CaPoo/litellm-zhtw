@@ -1,4 +1,9 @@
-.env
-config/
-README.md
+.git/
 .gitignore
+.env
+.env.*
+config/
+docs/
+README*
+LICENSE
+docker-compose.yml
