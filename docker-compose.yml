@@ -4,7 +4,7 @@ services:
       context: .
       args:
         LITELLM_UI_LANG: ${LITELLM_UI_LANG:-zh-TW}
-    image: litellm-i18n:v1.95.0-${LITELLM_UI_LANG:-zh-TW}
+    image: litellm-i18n:v1.96.2-${LITELLM_UI_LANG:-zh-TW}
     container_name: litellm
     restart: unless-stopped
     ports:
