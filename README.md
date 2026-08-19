@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.94.0-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.97.0-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -25,7 +25,7 @@ translations are being added.
 | `zh-CN` | Simplified Chinese | [`dict.zh-CN.json`](zhtw/dict.zh-CN.json) | `zh-Hans` |
 | `zh-TW` | Traditional Chinese (default) | [`dict.json`](zhtw/dict.json) | `zh-Hant` |
 
-Each dictionary contains the same 4,599 source keys. `dict.json` remains the
+Each dictionary contains the same 4,852 source keys. `dict.json` remains the
 Traditional Chinese filename for compatibility with earlier releases of this project.
 
 ## Quick start
@@ -42,7 +42,7 @@ Replace `ja` with `en`, `ko`, `zh-CN`, or `zh-TW`. Use the resulting image where
 you currently use the official LiteLLM image; your existing LiteLLM command,
 configuration, database, and environment variables can stay the same.
 
-This repository currently pins the base image to `ghcr.io/berriai/litellm:v1.94.0`.
+This repository currently pins the base image to `ghcr.io/berriai/litellm:v1.97.0`.
 To use another LiteLLM release, change only the `FROM` line in [`Dockerfile`](Dockerfile),
 then rebuild and check the Admin UI.
 
@@ -147,7 +147,7 @@ validator before rebuilding, then check the affected screen:
 python scripts/validate_i18n.py
 ```
 
-The current dictionaries target the UI bundled with LiteLLM `v1.94.0`. A newer
+The current dictionaries target the UI bundled with LiteLLM `v1.97.0`. A newer
 LiteLLM version can introduce new English strings; those strings will remain English
 until their keys are added to every dictionary.
 

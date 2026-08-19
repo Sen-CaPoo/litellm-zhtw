@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.94.0-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.97.0-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -21,7 +21,7 @@
 | `zh-CN` | 簡體中文 | [`dict.zh-CN.json`](zhtw/dict.zh-CN.json) | `zh-Hans` |
 | `zh-TW` | 繁體中文（預設） | [`dict.json`](zhtw/dict.json) | `zh-Hant` |
 
-每份字典都包含相同的 4,599 個來源鍵。`dict.json` 為了相容本專案的舊版發行，仍使用繁體中文的檔名。
+每份字典都包含相同的 4,852 個來源鍵。`dict.json` 為了相容本專案的舊版發行，仍使用繁體中文的檔名。
 
 ## 快速開始
 
@@ -35,7 +35,7 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 
 將 `ja` 替換為 `en`、`ko`、`zh-CN` 或 `zh-TW`。您可在目前使用官方 LiteLLM 映像檔的任何地方使用產生的映像檔；既有的 LiteLLM 命令、設定、資料庫與環境變數皆可維持不變。
 
-本儲存庫目前將基底映像檔固定為 `ghcr.io/berriai/litellm:v1.94.0`。若要使用其他 LiteLLM 發行版本，僅需變更 [`Dockerfile`](Dockerfile) 中的 `FROM` 行，然後重新建置並檢查 Admin UI。
+本儲存庫目前將基底映像檔固定為 `ghcr.io/berriai/litellm:v1.97.0`。若要使用其他 LiteLLM 發行版本，僅需變更 [`Dockerfile`](Dockerfile) 中的 `FROM` 行，然後重新建置並檢查 Admin UI。
 
 ### 使用內附的 Docker Compose 範例
 
@@ -123,7 +123,7 @@ docker build --build-arg LITELLM_UI_LANG=ko -t my-litellm:ko .
 python scripts/validate_i18n.py
 ```
 
-目前字典的目標為 LiteLLM `v1.94.0` 內附的 UI。新版 LiteLLM 可能引入新的英文文字；在新增至每份字典的鍵之前，這些文字會維持英文。
+目前字典的目標為 LiteLLM `v1.97.0` 內附的 UI。新版 LiteLLM 可能引入新的英文文字；在新增至每份字典的鍵之前，這些文字會維持英文。
 
 ## 疑難排解
 
