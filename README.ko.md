@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.97.0-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.98.0-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -23,7 +23,7 @@ LiteLLM의 내보낸 UI 페이지에 삽입합니다. 사전에 없는 문자열
 | `zh-CN` | 중국어 간체 | [`dict.zh-CN.json`](zhtw/dict.zh-CN.json) | `zh-Hans` |
 | `zh-TW` | 중국어 번체(기본값) | [`dict.json`](zhtw/dict.json) | `zh-Hant` |
 
-각 사전에는 동일한 4,852개의 원본 키가 있습니다. `dict.json`은 이 프로젝트의 이전 릴리스와의
+각 사전에는 동일한 5,060개의 원본 키가 있습니다. `dict.json`은 이 프로젝트의 이전 릴리스와의
 호환성을 위해 중국어 번체 파일명으로 유지됩니다.
 
 ## 빠른 시작
@@ -39,7 +39,7 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 `ja`를 `en`, `ko`, `zh-CN` 또는 `zh-TW`로 바꾸세요. 현재 공식 LiteLLM 이미지를 사용하는 곳에
 결과 이미지를 사용하면 됩니다. 기존 LiteLLM 명령, 구성, 데이터베이스 및 환경 변수는 그대로 유지할 수 있습니다.
 
-이 저장소는 현재 기본 이미지를 `ghcr.io/berriai/litellm:v1.97.0`으로 고정합니다.
+이 저장소는 현재 기본 이미지를 `ghcr.io/berriai/litellm:v1.98.0`으로 고정합니다.
 다른 LiteLLM 릴리스를 사용하려면 [`Dockerfile`](Dockerfile)의 `FROM` 줄만 변경한 뒤,
 다시 빌드하고 Admin UI를 확인하세요.
 
@@ -136,7 +136,7 @@ LiteLLM UI HTML 파일을 찾지 못하면 빌드가 중단됩니다. 따라서 
 python scripts/validate_i18n.py
 ```
 
-현재 사전은 LiteLLM `v1.97.0`에 번들된 UI를 대상으로 합니다. 이후 LiteLLM 버전에는 새 영어 문자열이
+현재 사전은 LiteLLM `v1.98.0`에 번들된 UI를 대상으로 합니다. 이후 LiteLLM 버전에는 새 영어 문자열이
 추가될 수 있으며, 해당 키가 모든 사전에 추가될 때까지는 영어로 유지됩니다.
 
 ## 문제 해결
