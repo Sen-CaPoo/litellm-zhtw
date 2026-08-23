@@ -41,14 +41,16 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 
 ### 同梱の Docker Compose サンプルを使う
 
-同梱のスタックは PostgreSQL と Ollama Cloud 向けに設定されたサンプルです。本番環境に導入する前に、[`config/config.yaml`](config/config.yaml) を確認し、モデル／プロバイダー設定を独自の内容に置き換えてください。
+同梱のスタックは PostgreSQL と Ollama Cloud 向けに設定されたサンプルです。本番環境に導入する前に、[`config/config.example.yaml`](config/config.example.yaml) を確認し、モデル／プロバイダー設定を独自の内容に置き換えてください。
 
 ```bash
 # macOS / Linux
 cp .env.example .env
+cp config/config.example.yaml config/config.yaml
 
 # Windows PowerShell
 Copy-Item .env.example .env
+Copy-Item config/config.example.yaml config/config.yaml
 ```
 
 `.env` を編集し、`LITELLM_UI_LANG` とすべてのプレースホルダーシークレットを設定してから、次を実行します。
@@ -65,7 +67,7 @@ docker compose build litellm
 docker compose up -d litellm
 ```
 
-> プライバシーに関する注意: 同梱の [`config/config.yaml`](config/config.yaml) では `store_prompts_in_spend_logs` が有効です。プロンプトとモデル応答を LiteLLM データベースに保存してはならない場合は無効にしてください。
+> プライバシーに関する注意: 同梱の [`config/config.example.yaml`](config/config.example.yaml) では `store_prompts_in_spend_logs` が有効です。プロンプトとモデル応答を LiteLLM データベースに保存してはならない場合は無効にしてください。
 
 ## この翻訳レイヤーを別の LiteLLM プロジェクトに追加する
 
@@ -105,7 +107,9 @@ LiteLLM UI HTML ファイルが見つからない場合、ビルドは停止し�
 | [`zhtw/inject.js`](zhtw/inject.js) | 共有ブラウザ側翻訳エンジン |
 | [`zhtw/patch_ui.py`](zhtw/patch_ui.py) | ビルド時の言語選択と UI パッチャー |
 | [`Dockerfile`](Dockerfile) | ローカライズ済みイメージのビルド |
-| [`docker-compose.yml`](docker-compose.yml) | 任意の LiteLLM + PostgreSQL サンプル |
+| [`docker-compose.yml`](docker-compose.yml) | 任意の LiteLLM + PostgreSQL + Redis サンプル |
+| [`config/config.example.yaml`](config/config.example.yaml) | プロキシ設定のサンプル。`config/config.yaml` にコピーして使用 |
+| [`config/custom_callbacks.py`](config/custom_callbacks.py) | 上流の低エントロピーな応答 id を一意な値に置き換え、支出ログが黙って破棄されるのを防ぐ |
 | [`.env.example`](.env.example) | ビルド言語と実行時変数のサンプル |
 
 ## 翻訳を更新する

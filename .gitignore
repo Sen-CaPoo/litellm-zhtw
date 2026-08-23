@@ -9,6 +9,22 @@
 *.dump
 backup_*
 
+# === 金鑰發放清單：含明文虛擬金鑰 ===
+virtual_keys_*
+
+# === 私有部署設定：這個 repo 是公開的,實際部署設定一律不進版控 ===
+# config.yaml 是你的實際設定,公開範例另見 config/config.example.yaml
+config/config.yaml
+# 疊在 docker-compose.yml 之上的本地服務(如自製儀表板)
+docker-compose.override.yml
+
+# === 本地工具設定 ===
+.claude/
+
+# === Python ===
+__pycache__/
+*.pyc
+
 # === 系統雜物 ===
 Thumbs.db
 desktop.ini

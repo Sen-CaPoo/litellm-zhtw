@@ -39,14 +39,16 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 
 ### 使用附带的 Docker Compose 示例
 
-附带的堆栈是为 PostgreSQL 和 Ollama Cloud 配置的示例。在将其用作生产部署前，请查看 [`config/config.yaml`](config/config.yaml)，并替换为自己的模型和供应商设置。
+附带的堆栈是为 PostgreSQL 和 Ollama Cloud 配置的示例。在将其用作生产部署前，请查看 [`config/config.example.yaml`](config/config.example.yaml)，并替换为自己的模型和供应商设置。
 
 ```bash
 # macOS / Linux
 cp .env.example .env
+cp config/config.example.yaml config/config.yaml
 
 # Windows PowerShell
 Copy-Item .env.example .env
+Copy-Item config/config.example.yaml config/config.yaml
 ```
 
 编辑 `.env`，设置 `LITELLM_UI_LANG` 和所有占位密钥，然后运行：
@@ -63,7 +65,7 @@ docker compose build litellm
 docker compose up -d litellm
 ```
 
-> 隐私说明：附带的 [`config/config.yaml`](config/config.yaml) 启用了 `store_prompts_in_spend_logs`。如果不得在 LiteLLM 数据库中存储提示词和模型响应，请将其禁用。
+> 隐私说明：附带的 [`config/config.example.yaml`](config/config.example.yaml) 启用了 `store_prompts_in_spend_logs`。如果不得在 LiteLLM 数据库中存储提示词和模型响应，请将其禁用。
 
 ## 将此翻译层添加到另一个 LiteLLM 项目
 
@@ -103,7 +105,9 @@ docker build --build-arg LITELLM_UI_LANG=ko -t my-litellm:ko .
 | [`zhtw/inject.js`](zhtw/inject.js) | 共享的浏览器端翻译引擎 |
 | [`zhtw/patch_ui.py`](zhtw/patch_ui.py) | 构建时语言选择与 UI 修补程序 |
 | [`Dockerfile`](Dockerfile) | 本地化镜像构建 |
-| [`docker-compose.yml`](docker-compose.yml) | 可选的 LiteLLM + PostgreSQL 示例 |
+| [`docker-compose.yml`](docker-compose.yml) | 可选的 LiteLLM + PostgreSQL + Redis 示例 |
+| [`config/config.example.yaml`](config/config.example.yaml) | 代理配置示例；复制为 `config/config.yaml` 后使用 |
+| [`config/custom_callbacks.py`](config/custom_callbacks.py) | 把上游的低熵响应 id 换成唯一值，避免花费记录被静默丢弃 |
 | [`.env.example`](.env.example) | 构建语言和示例运行时变量 |
 
 ## 更新翻译

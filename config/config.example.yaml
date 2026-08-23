@@ -1,4 +1,9 @@
-# LiteLLM Proxy 設定 — Ollama Cloud
+# LiteLLM Proxy 設定範例 — Ollama Cloud
+#
+# 這是範例檔。複製成 config/config.yaml 後改成自己的模型與供應商設定:
+#   cp config/config.example.yaml config/config.yaml
+# config.yaml 本身已被 .gitignore 忽略,你的實際部署設定不會被提交。
+#
 # 模型名稱若之後 Ollama Cloud 有異動,調整 model 欄位後執行:docker compose restart litellm
 #
 # token 費用說明:
@@ -288,7 +293,21 @@ litellm_settings:
   drop_params: true        # 自動丟棄 Ollama 不支援的 OpenAI 參數,避免 400 錯誤
   num_retries: 2
   request_timeout: 600
+  # 把上游回的低熵 response id(chatcmpl-<三位數>)換成唯一值,
+  # 否則 SpendLogs 以 request_id 為唯一鍵,撞號的紀錄會被靜默丟棄。
+  # 實作與原理見 config/custom_callbacks.py(compose 掛載到 /app/custom_callbacks.py)。
+  callbacks: custom_callbacks.unique_request_id
 
 general_settings:
   store_model_in_db: true
   store_prompts_in_spend_logs: true   # 在花費紀錄中保存 prompt 與回應內容(Logs 頁可檢視)
+  # 共用狀態用的 Redis:速率限制計數、預算累計、router cooldown、金鑰與設定的快取失效。
+  # 這是「協調用」Redis,不是 LLM 回應快取 —— 未開 litellm_settings.cache,
+  # 每次請求照樣實打上游,花費紀錄與用量數字維持真實。
+  # 明寫這一段的優先權高於「借用回應快取的 Redis」與 REDIS_* 環境變數;
+  # 反過來只設環境變數而不寫這段,Proxy 不會建立協調 Redis(UI 仍會提示未設定)。
+  # router 啟動時自動沿用同一條連線,故 router_settings 無須重複填 redis_host。
+  coordination_redis:
+    host: redis   # docker-compose 服務名
+    port: 6379
+    password: os.environ/REDIS_PASSWORD
