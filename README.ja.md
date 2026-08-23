@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.97.0-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.98.0-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -23,7 +23,7 @@ LiteLLM のエクスポート済み UI ページに埋め込みます。辞書�
 | `zh-CN` | 中国語（簡体字） | [`dict.zh-CN.json`](zhtw/dict.zh-CN.json) | `zh-Hans` |
 | `zh-TW` | 中国語（繁体字、既定値） | [`dict.json`](zhtw/dict.json) | `zh-Hant` |
 
-各辞書には同じ 4,852 個のソースキーが含まれます。`dict.json` は、このプロジェクトの以前のリリースとの互換性のため、中国語（繁体字）のファイル名として維持されています。
+各辞書には同じ 5,060 個のソースキーが含まれます。`dict.json` は、このプロジェクトの以前のリリースとの互換性のため、中国語（繁体字）のファイル名として維持されています。
 
 ## クイックスタート
 
@@ -37,7 +37,7 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 
 `ja` は `en`、`ko`、`zh-CN`、または `zh-TW` に置き換えられます。現在公式 LiteLLM イメージを使用している場所で生成されたイメージを使用してください。既存の LiteLLM コマンド、設定、データベース、環境変数はそのまま利用できます。
 
-このリポジトリでは現在、ベースイメージを `ghcr.io/berriai/litellm:v1.97.0` に固定しています。別の LiteLLM リリースを使用するには、`FROM` 行だけを [`Dockerfile`](Dockerfile) で変更してから、再ビルドして Admin UI を確認してください。
+このリポジトリでは現在、ベースイメージを `ghcr.io/berriai/litellm:v1.98.0` に固定しています。別の LiteLLM リリースを使用するには、`FROM` 行だけを [`Dockerfile`](Dockerfile) で変更してから、再ビルドして Admin UI を確認してください。
 
 ### 同梱の Docker Compose サンプルを使う
 
@@ -125,7 +125,7 @@ LiteLLM UI HTML ファイルが見つからない場合、ビルドは停止し�
 python scripts/validate_i18n.py
 ```
 
-現在の辞書は LiteLLM `v1.97.0` に同梱される UI を対象としています。新しい LiteLLM バージョンでは新しい英語文字列が追加されることがあり、すべての辞書にキーを追加するまで、それらの文字列は英語のままです。
+現在の辞書は LiteLLM `v1.98.0` に同梱される UI を対象としています。新しい LiteLLM バージョンでは新しい英語文字列が追加されることがあり、すべての辞書にキーを追加するまで、それらの文字列は英語のままです。
 
 ## トラブルシューティング
 
