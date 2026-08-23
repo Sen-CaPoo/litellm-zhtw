@@ -49,15 +49,17 @@ then rebuild and check the Admin UI.
 ### Use the included Docker Compose example
 
 The included stack is an example configured for PostgreSQL and Ollama Cloud. Review
-[`config/config.yaml`](config/config.yaml) and replace its model/provider settings
+[`config/config.example.yaml`](config/config.example.yaml) and replace its model/provider settings
 with your own before treating it as a production deployment.
 
 ```bash
 # macOS / Linux
 cp .env.example .env
+cp config/config.example.yaml config/config.yaml
 
 # Windows PowerShell
 Copy-Item .env.example .env
+Copy-Item config/config.example.yaml config/config.yaml
 ```
 
 Edit `.env`, set `LITELLM_UI_LANG` and every placeholder secret, then run:
@@ -75,7 +77,7 @@ docker compose build litellm
 docker compose up -d litellm
 ```
 
-> Privacy note: the included [`config/config.yaml`](config/config.yaml) enables
+> Privacy note: the included [`config/config.example.yaml`](config/config.example.yaml) enables
 > `store_prompts_in_spend_logs`. Disable it if prompts and model responses must not be
 > stored in the LiteLLM database.
 
@@ -125,7 +127,9 @@ change visible during upgrade instead of silently producing an untranslated imag
 | [`zhtw/inject.js`](zhtw/inject.js) | Shared browser-side translation engine |
 | [`zhtw/patch_ui.py`](zhtw/patch_ui.py) | Build-time language selection and UI patcher |
 | [`Dockerfile`](Dockerfile) | Localized image build |
-| [`docker-compose.yml`](docker-compose.yml) | Optional LiteLLM + PostgreSQL example |
+| [`docker-compose.yml`](docker-compose.yml) | Optional LiteLLM + PostgreSQL + Redis example |
+| [`config/config.example.yaml`](config/config.example.yaml) | Example proxy config; copy it to `config/config.yaml` |
+| [`config/custom_callbacks.py`](config/custom_callbacks.py) | Gives low-entropy upstream response ids a unique value so spend logs are not silently dropped |
 | [`.env.example`](.env.example) | Build language and example runtime variables |
 
 ## Update a translation

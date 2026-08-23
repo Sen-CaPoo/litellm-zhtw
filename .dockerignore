@@ -1,9 +1,5 @@
-.git/
-.gitignore
-.env
-.env.*
-config/
-docs/
-README*
-LICENSE
-docker-compose.yml
+# build context 只需要 zhtw/ —— Dockerfile 僅 COPY 這一個目錄。
+# 這裡用白名單而不是逐項排除:資料庫備份、金鑰清單、員工通知信件這類
+# 大型或敏感檔案只要漏列一次,就會整包送進 Docker daemon。白名單沒有這個風險。
+*
+!zhtw/

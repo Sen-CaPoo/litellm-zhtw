@@ -46,14 +46,16 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 ### 포함된 Docker Compose 예제 사용
 
 포함된 스택은 PostgreSQL 및 Ollama Cloud용으로 구성된 예제입니다. 프로덕션 배포로 사용하기 전에
-[`config/config.yaml`](config/config.yaml)을 검토하고 모델/제공업체 설정을 자체 설정으로 바꾸세요.
+[`config/config.example.yaml`](config/config.example.yaml)을 검토하고 모델/제공업체 설정을 자체 설정으로 바꾸세요.
 
 ```bash
 # macOS / Linux
 cp .env.example .env
+cp config/config.example.yaml config/config.yaml
 
 # Windows PowerShell
 Copy-Item .env.example .env
+Copy-Item config/config.example.yaml config/config.yaml
 ```
 
 `.env`를 편집하여 `LITELLM_UI_LANG` 및 모든 자리표시자 시크릿을 설정한 다음 실행하세요.
@@ -71,7 +73,7 @@ docker compose build litellm
 docker compose up -d litellm
 ```
 
-> 개인정보 보호 참고: 포함된 [`config/config.yaml`](config/config.yaml)은
+> 개인정보 보호 참고: 포함된 [`config/config.example.yaml`](config/config.example.yaml)은
 > `store_prompts_in_spend_logs`를 활성화합니다. 프롬프트와 모델 응답을 LiteLLM 데이터베이스에
 > 저장하면 안 되는 경우 비활성화하세요.
 
@@ -115,7 +117,9 @@ LiteLLM UI HTML 파일을 찾지 못하면 빌드가 중단됩니다. 따라서 
 | [`zhtw/inject.js`](zhtw/inject.js) | 공용 브라우저 측 번역 엔진 |
 | [`zhtw/patch_ui.py`](zhtw/patch_ui.py) | 빌드 시 언어 선택 및 UI 패처 |
 | [`Dockerfile`](Dockerfile) | 현지화 이미지 빌드 |
-| [`docker-compose.yml`](docker-compose.yml) | 선택 사항인 LiteLLM + PostgreSQL 예제 |
+| [`docker-compose.yml`](docker-compose.yml) | 선택 사항인 LiteLLM + PostgreSQL + Redis 예제 |
+| [`config/config.example.yaml`](config/config.example.yaml) | 프록시 설정 예제. `config/config.yaml`로 복사해 사용 |
+| [`config/custom_callbacks.py`](config/custom_callbacks.py) | 상위 응답 id의 낮은 엔트로피 값을 고유 값으로 바꿔 지출 로그가 조용히 삭제되는 것을 방지 |
 | [`.env.example`](.env.example) | 빌드 언어 및 런타임 변수 예제 |
 
 ## 번역 업데이트
