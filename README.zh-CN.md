@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.98.0-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.99.0-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -35,7 +35,7 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 
 将 `ja` 替换为 `en`、`ko`、`zh-CN` 或 `zh-TW`。可在当前使用官方 LiteLLM 镜像的任何位置使用生成的镜像；现有的 LiteLLM 命令、配置、数据库和环境变量均可保持不变。
 
-本仓库当前将基础镜像固定为 `ghcr.io/berriai/litellm:v1.98.0`。如需使用其他 LiteLLM 版本，只需修改 [`Dockerfile`](Dockerfile) 中的 `FROM` 行，然后重新构建并检查 Admin UI。
+本仓库当前将基础镜像固定为 `ghcr.io/berriai/litellm:v1.99.0`。如需使用其他 LiteLLM 版本，只需修改 [`Dockerfile`](Dockerfile) 中的 `FROM` 行，然后重新构建并检查 Admin UI。
 
 ### 使用附带的 Docker Compose 示例
 
@@ -127,7 +127,7 @@ docker build --build-arg LITELLM_UI_LANG=ko -t my-litellm:ko .
 python scripts/validate_i18n.py
 ```
 
-当前字典面向 LiteLLM `v1.98.0` 附带的 UI。较新的 LiteLLM 版本可能引入新的英文字符串；在将其键添加到每个字典前，这些字符串会保持英文。
+当前字典面向 LiteLLM `v1.99.0` 附带的 UI。较新的 LiteLLM 版本可能引入新的英文字符串；在将其键添加到每个字典前，这些字符串会保持英文。
 
 ## 故障排除
 

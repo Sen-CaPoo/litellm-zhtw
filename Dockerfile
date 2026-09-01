@@ -1,4 +1,4 @@
-FROM ghcr.io/berriai/litellm:v1.98.0
+FROM ghcr.io/berriai/litellm:v1.99.0
 
 ARG LITELLM_UI_LANG=zh-TW
 COPY zhtw/ /zhtw/
