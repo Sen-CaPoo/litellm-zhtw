@@ -2,7 +2,7 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.100.1-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.101.0-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -39,7 +39,7 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 `ja`를 `en`, `ko`, `zh-CN` 또는 `zh-TW`로 바꾸세요. 현재 공식 LiteLLM 이미지를 사용하는 곳에
 결과 이미지를 사용하면 됩니다. 기존 LiteLLM 명령, 구성, 데이터베이스 및 환경 변수는 그대로 유지할 수 있습니다.
 
-이 저장소는 현재 기본 이미지를 `ghcr.io/berriai/litellm:v1.100.1`으로 고정합니다.
+이 저장소는 현재 기본 이미지를 `ghcr.io/berriai/litellm:v1.101.0`으로 고정합니다.
 다른 LiteLLM 릴리스를 사용하려면 [`Dockerfile`](Dockerfile)의 `FROM` 줄만 변경한 뒤,
 다시 빌드하고 Admin UI를 확인하세요.
 
@@ -140,7 +140,7 @@ LiteLLM UI HTML 파일을 찾지 못하면 빌드가 중단됩니다. 따라서 
 python scripts/validate_i18n.py
 ```
 
-현재 사전은 LiteLLM `v1.100.1`에 번들된 UI를 대상으로 합니다. 이후 LiteLLM 버전에는 새 영어 문자열이
+현재 사전은 LiteLLM `v1.101.0`에 번들된 UI를 대상으로 합니다. 이후 LiteLLM 버전에는 새 영어 문자열이
 추가될 수 있으며, 해당 키가 모든 사전에 추가될 때까지는 영어로 유지됩니다.
 
 ## 문제 해결
