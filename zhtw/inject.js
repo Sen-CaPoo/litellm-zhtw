@@ -30,7 +30,7 @@
     if (!raw) return null;
     var normalized = raw.replace(/\s+/g, ' ');
     var key = normalized.trim();
-    if (!key || key.length > 300) return null;
+    if (!key || key.length > 1000) return null;
     var hit = lookup(key);
     if (hit === undefined && normalized !== key) hit = lookup(normalized);
     if (hit !== undefined) return hit;
