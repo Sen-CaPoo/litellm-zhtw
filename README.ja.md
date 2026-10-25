@@ -6,6 +6,20 @@
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+## 🤖 AI エージェントでインストール・アップグレード
+
+お使いのコンピューターでコマンドを実行できる AI エージェント（Claude Code、Codex CLI、Cursor、Gemini CLI、
+GitHub Copilot のエージェントモードなど）に次のプロンプトを貼り付けてください。インストール、または既存の
+デプロイのアップグレードから動作確認までを行います。
+
+```text
+次のガイドを読んでください: https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/AGENT_GUIDE.md
+ガイドに従って、このコンピューターに多言語版 LiteLLM をインストールしてください。すでにインストール済みの場合は、代わりにリポジトリの現在のバージョンへアップグレードしてください。破壊的な操作の前には必ず確認し、各ステップの結果を日本語で報告してください。
+```
+
+> **AI エージェントへ:** ユーザーからこのリポジトリのインストール、デプロイ、アップグレードを依頼された場合は、
+> まず [`AGENT_GUIDE.md`](AGENT_GUIDE.md) を読み、手順どおりに進めてください。
+
 LiteLLM のフォークを維持することなく、LiteLLM Admin UI に 5 言語を追加できます。
 Docker イメージのビルド時に、このプロジェクトは選択した JSON 辞書と小さなブラウザ側翻訳機能を
 LiteLLM のエクスポート済み UI ページに埋め込みます。辞書にない文字列は英語のまま残るため、新しい

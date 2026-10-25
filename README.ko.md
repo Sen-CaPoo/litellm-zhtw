@@ -6,6 +6,20 @@
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+## 🤖 AI 에이전트로 설치 또는 업그레이드
+
+컴퓨터에서 명령을 실행할 수 있는 AI 에이전트(Claude Code, Codex CLI, Cursor, Gemini CLI,
+GitHub Copilot 에이전트 모드 등)에 아래 프롬프트를 붙여 넣으세요. 설치하거나 기존 배포를
+업그레이드하고 결과까지 검증합니다.
+
+```text
+다음 가이드를 읽어 주세요: https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/AGENT_GUIDE.md
+가이드에 따라 이 컴퓨터에 다국어 LiteLLM을 설치해 주세요. 이미 설치되어 있다면 대신 저장소의 현재 버전으로 업그레이드해 주세요. 파괴적인 작업 전에는 반드시 확인을 받고, 각 단계의 결과를 한국어로 보고해 주세요.
+```
+
+> **AI 에이전트에게:** 사용자가 이 저장소의 설치, 배포 또는 업그레이드를 요청했다면 먼저
+> [`AGENT_GUIDE.md`](AGENT_GUIDE.md)를 읽고 단계별로 따르세요.
+
 LiteLLM을 포크하지 않고 LiteLLM Admin UI에 5개 언어를 추가합니다.
 Docker 이미지 빌드 중 이 프로젝트는 선택한 JSON 사전 하나와 소규모 브라우저 측 번역기를
 LiteLLM의 내보낸 UI 페이지에 삽입합니다. 사전에 없는 문자열은 영어로 유지되므로, 새 번역을

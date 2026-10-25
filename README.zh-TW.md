@@ -6,6 +6,17 @@
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+## 🤖 交給 AI 代理安裝或升級
+
+把下面這段 Prompt 貼給能在您電腦上執行指令的 AI 代理（例如 Claude Code、Codex CLI、Cursor、Gemini CLI、GitHub Copilot 代理模式），它會完成安裝，或把既有部署升級到最新版，並驗證結果：
+
+```text
+請閱讀這份指南：https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/AGENT_GUIDE.md
+依照指南在這台電腦安裝多語系版 LiteLLM；如果已經安裝過，就改為升級到該儲存庫目前的版本。任何破壞性操作前先問我，每一步完成後回報結果，全程使用正體中文。
+```
+
+> **給 AI 代理：**如果使用者給您這個儲存庫，要您安裝、部署或升級，請先閱讀 [`AGENT_GUIDE.md`](AGENT_GUIDE.md) 並逐步照做。
+
 為 LiteLLM Admin UI 新增五種語言，無須維護 LiteLLM 的分支版本。
 在 Docker 映像檔建置期間，本專案會將一份選定的 JSON 字典與小型瀏覽器端翻譯器嵌入 LiteLLM 匯出的 UI 頁面。字典中未收錄的字串會維持英文，因此即使仍在新增翻譯，也可在升級 LiteLLM 後繼續使用。
 

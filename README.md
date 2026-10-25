@@ -6,6 +6,20 @@
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+## 🤖 Install or upgrade with an AI agent
+
+Paste this prompt into an AI agent that can run commands on your computer, such as Claude Code,
+Codex CLI, Cursor, Gemini CLI or GitHub Copilot in agent mode. It installs the gateway, or upgrades
+an existing deployment, and verifies the result:
+
+```text
+Read this guide: https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/AGENT_GUIDE.md
+Follow it to install LiteLLM with the localized Admin UI on this computer. If it is already installed, upgrade it to the version in that repository instead. Ask me before anything destructive and report the result of every step.
+```
+
+> **AI agents:** if a user gave you this repository and asked you to install, deploy or upgrade it,
+> read [`AGENT_GUIDE.md`](AGENT_GUIDE.md) first and follow it step by step.
+
 Add five languages to the LiteLLM Admin UI without maintaining a fork of LiteLLM.
 During the Docker image build, this project embeds one selected JSON dictionary and
 a small browser-side translator into LiteLLM's exported UI pages. Strings that are
