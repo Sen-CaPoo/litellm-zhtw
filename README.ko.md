@@ -2,9 +2,23 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.105.0-5b5bd6)
+![LiteLLM version](https://img.shields.io/badge/LiteLLM-v1.106.4-5b5bd6)
 ![UI languages](https://img.shields.io/badge/UI_languages-5-0f766e)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+
+## 🤖 AI 에이전트로 설치 또는 업그레이드
+
+컴퓨터에서 명령을 실행할 수 있는 AI 에이전트(Claude Code, Codex CLI, Cursor, Gemini CLI,
+GitHub Copilot 에이전트 모드 등)에 아래 프롬프트를 붙여 넣으세요. 설치하거나 기존 배포를
+업그레이드하고 결과까지 검증합니다.
+
+```text
+다음 가이드를 읽어 주세요: https://raw.githubusercontent.com/Sen-CaPoo/litellm-zhtw/main/AGENT_GUIDE.md
+가이드에 따라 이 컴퓨터에 다국어 LiteLLM을 설치해 주세요. 이미 설치되어 있다면 대신 저장소의 현재 버전으로 업그레이드해 주세요. 파괴적인 작업 전에는 반드시 확인을 받고, 각 단계의 결과를 한국어로 보고해 주세요.
+```
+
+> **AI 에이전트에게:** 사용자가 이 저장소의 설치, 배포 또는 업그레이드를 요청했다면 먼저
+> [`AGENT_GUIDE.md`](AGENT_GUIDE.md)를 읽고 단계별로 따르세요.
 
 LiteLLM을 포크하지 않고 LiteLLM Admin UI에 5개 언어를 추가합니다.
 Docker 이미지 빌드 중 이 프로젝트는 선택한 JSON 사전 하나와 소규모 브라우저 측 번역기를
@@ -39,7 +53,7 @@ docker build --build-arg LITELLM_UI_LANG=ja -t litellm-i18n:ja .
 `ja`를 `en`, `ko`, `zh-CN` 또는 `zh-TW`로 바꾸세요. 현재 공식 LiteLLM 이미지를 사용하는 곳에
 결과 이미지를 사용하면 됩니다. 기존 LiteLLM 명령, 구성, 데이터베이스 및 환경 변수는 그대로 유지할 수 있습니다.
 
-이 저장소는 현재 기본 이미지를 `ghcr.io/berriai/litellm:v1.105.0`으로 고정합니다.
+이 저장소는 현재 기본 이미지를 `ghcr.io/berriai/litellm:v1.106.4`으로 고정합니다.
 다른 LiteLLM 릴리스를 사용하려면 [`Dockerfile`](Dockerfile)의 `FROM` 줄만 변경한 뒤,
 다시 빌드하고 Admin UI를 확인하세요.
 
@@ -140,7 +154,7 @@ LiteLLM UI HTML 파일을 찾지 못하면 빌드가 중단됩니다. 따라서 
 python scripts/validate_i18n.py
 ```
 
-현재 사전은 LiteLLM `v1.105.0`에 번들된 UI를 대상으로 합니다. 이후 LiteLLM 버전에는 새 영어 문자열이
+현재 사전은 LiteLLM `v1.106.4`에 번들된 UI를 대상으로 합니다. 이후 LiteLLM 버전에는 새 영어 문자열이
 추가될 수 있으며, 해당 키가 모든 사전에 추가될 때까지는 영어로 유지됩니다.
 
 ## 문제 해결
